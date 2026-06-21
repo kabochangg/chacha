@@ -1,100 +1,81 @@
 # 副業タイプ診断
 
-3分で、今の自分に合う副業の方向性を確認できる静的サイトです。外部AI APIや課金が発生する仕組みは使っていません。
+10問の回答から、ブログ・SNS・スキル販売・コンテンツ販売のうち、現在の進め方に近い副業タイプを表示する静的サイトです。Cloudflare Pagesでの公開、成果報酬広告、AdSense申請、問い合わせフォームに対応しています。
 
-## 起動方法
+## ローカル確認
 
 ```powershell
 node server.js
 ```
 
-ブラウザで `http://127.0.0.1:4173` を開きます。
+`http://127.0.0.1:4173` を開きます。Cloudflare Pages Functionsはこの簡易サーバーでは動作しないため、問い合わせ送信の確認にはWranglerを使用してください。
 
-別ポートで起動する場合:
+## 公開前に必ず設定する項目
 
-```powershell
-$env:PORT=3000
-node server.js
-```
+### `config.js`
 
-## 非エンジニア向け：文章を変更する方法
+- `siteUrl`: 独自ドメインのURL
+- `adsensePublisherId`: `ca-pub-` から始まるAdSense ID
+- `adsenseResultSlotId`: 承認後に作成する結果末尾用広告枠ID
+- `turnstileSiteKey`: Cloudflare Turnstileのサイトキー
+- `cloudflareAnalyticsToken`: Cloudflare Web Analyticsのトークン
+- `operatorName`: 公開する屋号またはハンドル名
 
-質問、選択肢、診断結果、参考リンクは、すべて `data.js` にあります。
+### ドメイン依存ファイル
 
-### 質問や選択肢を変更する
+`robots.txt` と `sitemap.xml` の `YOUR-DOMAIN.example` を独自ドメインへ置き換えます。
 
-`const questions = [` から始まる範囲を編集します。
+### AdSense
 
-- `title`：質問文
-- `label`：画面に表示する選択肢
-- `type`：どの診断タイプに1点を加えるか
+AdSenseから示された行を `ads.txt` に設定します。申請時は `adsensePublisherId` のみ設定し、広告枠IDが未設定なら結果画面に空の広告枠は出ません。
 
-`type` は次の4つから選び、文字を変更しないでください。
+### 成果報酬広告
 
-- `TYPES.BLOG`
-- `TYPES.SNS`
-- `TYPES.SKILL`
-- `TYPES.CONTENT`
+`data.js` の各結果にある `affiliateOffers` を編集します。
 
-質問は同じ形式のまとまりを追加・削除すれば、トップ画面の質問数と進捗表示も自動で変わります。
+- `id`: 計測用の一意なID
+- `name`: サービス名
+- `description`: 短い特徴
+- `cta`: ボタン文言
+- `url`: ASPから発行されたHTTPS広告URL
+- `network`: `a8` または `moshimo` など
+- `enabled`: 提携・掲載可能になったら `true`
 
-### 診断結果を変更する
+`enabled: true` かつHTTPS URLが設定された広告だけが最大3件表示されます。
 
-`const results = {` から始まる範囲を編集します。
+## Cloudflare Pages設定
 
-- `title`：結果名
-- `badge`：結果名の横に出る短い英語
-- `summary`：結果の説明
-- `reasons`：向いている理由
-- `cautions`：注意点
-- `steps`：最初の行動
-- `links`：参考リンク
+Git連携ではビルドコマンドを空欄、出力ディレクトリを `/` とします。環境変数・シークレットには次を設定します。
 
-### 変更しない項目
+- `TURNSTILE_SECRET_KEY`
+- `RESEND_API_KEY`
+- `CONTACT_TO_EMAIL`
+- `CONTACT_FROM_EMAIL`（任意。Resendで認証済みの送信元）
 
-次の文字を変更すると診断できなくなるため、意図的に種類を増やす場合以外は触らないでください。
+問い合わせメールはResend APIを利用します。`CONTACT_FROM_EMAIL` が未設定の場合はResendのテスト用送信元を使います。
 
-- `TYPES` 内の `"blog"`、`"sns"`、`"skill"`、`"content"`
-- `tieBreakOrder`
-- `data.js` の先頭と末尾にある仕組み部分
+クリックイベントをCloudflare Analytics Engineへ保存する場合は、`wrangler.toml` のコメントを外して `SITE_EVENTS` を有効化します。未設定でも診断は正常に動作します。
 
-入力ミスがある場合は、画面に設定エラーが表示されます。
-
-## ファイル構成
-
-```text
-.
-├── index.html         # ページの骨組み
-├── styles.css         # デザイン、スマートフォン対応
-├── data.js            # 質問・選択肢・診断結果（文章更新は主にここ）
-├── diagnosis.js       # 採点と診断中の状態管理
-├── ui.js              # 画面表示、ボタン、X共有
-├── script.js          # 診断を起動する短い処理
-├── server.js          # ローカル確認用サーバー
-├── diagnosis.test.js  # 診断ロジックの自動テスト
-└── server.test.js     # サーバーの自動テスト
-```
-
-## エンジニア向け：確認とテスト
-
-構文と自動テストを確認します。
+## テスト
 
 ```powershell
 node --check data.js
 node --check diagnosis.js
 node --check ui.js
 node --check script.js
+node --check site-bootstrap.js
+node --check contact.js
 node --check server.js
 node --test
 ```
 
-ブラウザでは次も確認してください。
+## 公開後の確認
 
-- 未回答では「次へ」が押せない
-- 戻ったときに選択内容が残る
-- 最終質問で結果が表示される
-- 「もう一度診断する」で最初に戻る
-- Tabキーと矢印キーだけでも回答できる
-- PC幅とスマートフォン幅で表示が崩れない
-
-同点時は `data.js` の `tieBreakOrder` に書かれた順で判定します。
+- 独自ドメインとHTTPSが有効
+- canonical、`robots.txt`、`sitemap.xml` が本番ドメインを参照
+- `ads.txt` がブラウザから取得可能
+- 4タイプの診断結果が正常
+- 承認済みASP広告だけが表示
+- AdSense広告は結果末尾だけに表示
+- 問い合わせが指定メールへ届く
+- フッターから運営者情報、問い合わせ、プライバシーポリシー、免責事項へ移動可能

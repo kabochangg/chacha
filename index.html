@@ -7,6 +7,27 @@
       name="description"
       content="3分でわかる、あなたに合う副業タイプ診断。ブログ、SNS、スキル販売、コンテンツ販売の4タイプから、無理なく始めやすい方向性を見つけます。"
     />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:site_name" content="副業タイプ診断" />
+    <meta property="og:title" content="副業タイプ診断 | 3分でわかる、あなたに合う始め方" />
+    <meta
+      property="og:description"
+      content="10個の質問から、ブログ、SNS、スキル販売、コンテンツ販売のうち、自分に近い副業の方向性を確認できます。"
+    />
+    <meta name="twitter:card" content="summary" />
+    <link rel="canonical" id="canonical-url" href="/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "副業タイプ診断",
+        "inLanguage": "ja",
+        "description": "10個の質問から、自分に近い副業の方向性を確認できる簡易診断サイト"
+      }
+    </script>
     <title>副業タイプ診断 | 3分でわかる、あなたに合う始め方</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -24,7 +45,7 @@
       <nav aria-label="メインナビゲーション">
         <a href="#diagnosis">診断する</a>
         <a href="#types">4つのタイプ</a>
-        <a href="#links">参考リンク</a>
+        <a href="#method">診断について</a>
       </nav>
       <a class="header-action" href="#diagnosis">はじめる</a>
     </header>
@@ -113,6 +134,17 @@
           </div>
           <p class="result-summary" id="result-summary"></p>
 
+          <section class="affiliate-section hidden" id="affiliate-section" aria-labelledby="affiliate-title">
+            <div class="affiliate-heading">
+              <div>
+                <p class="ad-disclosure">広告・PRを含みます</p>
+                <h3 id="affiliate-title">このタイプに合うサービス</h3>
+              </div>
+              <p>診断結果をもとに、始め方の候補を紹介します。</p>
+            </div>
+            <div class="affiliate-grid" id="affiliate-offers"></div>
+          </section>
+
           <div class="result-grid">
             <section>
               <h3>向いている理由</h3>
@@ -132,6 +164,11 @@
               <div id="result-links"></div>
             </section>
           </div>
+
+          <section class="adsense-section hidden" id="adsense-section" aria-label="広告">
+            <p class="ad-disclosure">広告</p>
+            <div id="adsense-result-slot"></div>
+          </section>
 
           <div class="result-actions">
             <button class="button primary" id="share-button" type="button">Xで結果を共有</button>
@@ -173,26 +210,53 @@
         </div>
       </section>
 
-      <section class="links-section" id="links">
+      <section class="links-section" id="method">
         <div class="section-heading reveal">
-          <p class="section-number">03 / References</p>
+          <p class="section-number">03 / About this diagnosis</p>
           <h2>
-            <span class="phrase">参考リンクは</span>
-            <span class="phrase">控えめに。</span>
+            <span class="phrase">診断結果は、</span>
+            <span class="phrase">始め方を考えるヒントです。</span>
           </h2>
           <p>
-            初期版では押し売りをしません。診断結果に合うサービスや学習先が決まったら、ここを差し替えられるようにしています。
+            10問の回答を4つのタイプに振り分け、最も回答数が多かった方向性を表示します。能力や収入を保証するものではなく、今の時間の使い方や好みに近い選択肢を整理するための簡易診断です。
           </p>
+        </div>
+        <div class="method-grid">
+          <article>
+            <span>01</span>
+            <h3>今の自分で答える</h3>
+            <p>理想像ではなく、現在無理なく続けられそうな選択肢を選ぶと結果を活かしやすくなります。</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>小さく試して確かめる</h3>
+            <p>結果は決定ではありません。最初の一歩を一つだけ試し、負担や手応えを確認してください。</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>合わなければ変えてよい</h3>
+            <p>使える時間や経験が変われば、向く方法も変わります。必要なときに何度でも診断できます。</p>
+          </article>
         </div>
       </section>
     </main>
 
     <footer>
-      <a class="logo" href="#top">副業タイプ<span>診断</span></a>
-      <p>自分に合う小さな始め方を見つける。</p>
+      <div class="footer-brand">
+        <a class="logo" href="#top">副業タイプ<span>診断</span></a>
+        <p>自分に合う小さな始め方を見つける。</p>
+      </div>
+      <nav class="footer-links" aria-label="サイト情報">
+        <a href="/operator.html">運営者情報</a>
+        <a href="/contact.html">お問い合わせ</a>
+        <a href="/privacy.html">プライバシーポリシー</a>
+        <a href="/disclaimer.html">免責事項</a>
+      </nav>
       <p>&copy; 2026 Side Work Finder</p>
     </footer>
 
+    <script src="config.js"></script>
+    <script src="site-bootstrap.js"></script>
     <script src="data.js"></script>
     <script src="diagnosis.js"></script>
     <script src="ui.js"></script>

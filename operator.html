@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="副業タイプ診断の運営者情報と編集方針です。" />
+    <meta name="robots" content="index,follow" />
+    <title>運営者情報 | 副業タイプ診断</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/page.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="logo" href="/">副業タイプ<span>診断</span></a>
+      <nav aria-label="メインナビゲーション"><a href="/#diagnosis">診断する</a><a href="/#types">4つのタイプ</a></nav>
+      <a class="header-action" href="/">トップへ</a>
+    </header>
+    <main class="content-page">
+      <article>
+        <p class="section-number">Operator</p>
+        <h1>運営者情報</h1>
+        <dl>
+          <dt>運営者</dt>
+          <dd id="operator-name">副業タイプ診断 編集部</dd>
+          <dt>サイト名</dt>
+          <dd>副業タイプ診断</dd>
+          <dt>お問い合わせ</dt>
+          <dd><a href="/contact.html">お問い合わせフォーム</a>からご連絡ください。</dd>
+        </dl>
+        <h2>運営目的</h2>
+        <p>副業を始めたい人が、自分の性格や使える時間に近い方向性を整理し、無理のない最初の一歩を見つけられる情報を提供します。</p>
+        <h2>編集方針</h2>
+        <p>サービスの公式情報や公的機関の情報を確認し、初心者にも理解しやすい表現を心がけます。広告掲載の有無だけを理由に、診断結果を変更することはありません。</p>
+        <h2>広告掲載について</h2>
+        <p>当サイトは、アフィリエイトプログラムおよび第三者配信広告を利用する場合があります。広告を含む箇所には「広告」「PR」などの表示を行います。</p>
+      </article>
+    </main>
+    <footer><div class="footer-brand"><a class="logo" href="/">副業タイプ<span>診断</span></a></div><nav class="footer-links"><a href="/contact.html">お問い合わせ</a><a href="/privacy.html">プライバシーポリシー</a><a href="/disclaimer.html">免責事項</a></nav><p>&copy; 2026 Side Work Finder</p></footer>
+    <script src="/config.js"></script><script src="/site-bootstrap.js"></script>
+    <script>
+      document.querySelector("#operator-name").textContent =
+        window.SideWorkFinderConfig?.operatorName || "副業タイプ診断 編集部";
+    </script>
+  </body>
+</html>

@@ -24,6 +24,18 @@
 
     typeValues.forEach((type) => {
       assert(results[type], `診断タイプ「${type}」の結果がありません。`);
+      const offers = results[type].affiliateOffers || [];
+      assert(Array.isArray(offers), `診断タイプ「${type}」の広告設定が正しくありません。`);
+      offers.forEach((offer, offerIndex) => {
+        assert(offer.id?.trim(), `診断タイプ「${type}」の${offerIndex + 1}件目に広告IDがありません。`);
+        assert(offer.name?.trim(), `広告「${offer.id}」にサービス名がありません。`);
+        if (offer.enabled) {
+          assert(
+            /^https:\/\//.test(offer.url || ""),
+            `有効な広告「${offer.id}」にはHTTPSのURLを設定してください。`,
+          );
+        }
+      });
     });
 
     questions.forEach((question, questionIndex) => {

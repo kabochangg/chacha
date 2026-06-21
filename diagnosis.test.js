@@ -4,6 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const data = require("./data");
 const diagnosis = require("./diagnosis");
+const ui = require("./ui");
 
 test("診断データのtype指定がすべて有効", () => {
   assert.equal(diagnosis.validateData(data), true);
@@ -73,4 +74,42 @@ test("未知のtypeをデータ検証で検出する", () => {
     ],
   };
   assert.throws(() => diagnosis.validateData(invalidData), /未知のtype/);
+});
+
+test("有効かつHTTPSの広告だけを最大3件表示対象にする", () => {
+  const offers = [
+    { id: "one", enabled: true, url: "https://example.com/1" },
+    { id: "two", enabled: false, url: "https://example.com/2" },
+    { id: "three", enabled: true, url: "" },
+    { id: "four", enabled: true, url: "https://example.com/4" },
+    { id: "five", enabled: true, url: "https://example.com/5" },
+    { id: "six", enabled: true, url: "https://example.com/6" },
+  ];
+
+  assert.deepEqual(
+    ui.getActiveAffiliateOffers(offers).map((offer) => offer.id),
+    ["one", "four", "five"],
+  );
+});
+
+test("有効な広告にはHTTPS URLが必要", () => {
+  const invalidData = {
+    ...data,
+    results: {
+      ...data.results,
+      [data.TYPES.BLOG]: {
+        ...data.results[data.TYPES.BLOG],
+        affiliateOffers: [
+          {
+            id: "invalid-offer",
+            name: "不正な広告",
+            enabled: true,
+            url: "http://example.com",
+          },
+        ],
+      },
+    },
+  };
+
+  assert.throws(() => diagnosis.validateData(invalidData), /HTTPS/);
 });
