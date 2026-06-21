@@ -1,30 +1,23 @@
-const glow = document.querySelector(".cursor-glow");
-const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+(function () {
+  "use strict";
 
-if (!reducedMotion && window.matchMedia("(pointer: fine)").matches) {
-  window.addEventListener("pointermove", (event) => {
-    glow.animate(
-      {
-        left: `${event.clientX}px`,
-        top: `${event.clientY}px`,
-      },
-      { duration: 900, fill: "forwards" },
-    );
-  });
-} else {
-  glow.hidden = true;
-}
+  const app = globalThis.SideWorkFinder;
 
-const observer = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("visible");
-        observer.unobserve(entry.target);
-      }
+  try {
+    if (!app?.data || !app?.diagnosis || !app?.ui) {
+      throw new Error("必要なJavaScriptファイルを読み込めませんでした。");
+    }
+
+    app.ui.createQuizApp({
+      data: app.data,
+      diagnosis: app.diagnosis,
     });
-  },
-  { threshold: 0.12 },
-);
-
-document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
+    app.ui.initializeRevealAnimations();
+  } catch (error) {
+    if (app?.ui?.showInitializationError) {
+      app.ui.showInitializationError(error);
+    } else {
+      console.error(error);
+    }
+  }
+})();

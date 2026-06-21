@@ -5,101 +5,197 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="余白とタイポグラフィで魅せる、ミニマルなクリエイティブスタジオ。"
+      content="3分でわかる、あなたに合う副業タイプ診断。ブログ、SNS、スキル販売、コンテンツ販売の4タイプから、無理なく始めやすい方向性を見つけます。"
     />
-    <title>YOIN — Creative Studio</title>
+    <title>副業タイプ診断 | 3分でわかる、あなたに合う始め方</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="cursor-glow" aria-hidden="true"></div>
-
     <header class="site-header">
-      <a class="logo" href="#top" aria-label="YOIN ホーム">YOIN<span>.</span></a>
+      <a class="logo" href="#top" aria-label="副業タイプ診断 トップへ">
+        副業タイプ<span>診断</span>
+      </a>
       <nav aria-label="メインナビゲーション">
-        <a href="#about">About</a>
-        <a href="#work">Work</a>
+        <a href="#diagnosis">診断する</a>
+        <a href="#types">4つのタイプ</a>
+        <a href="#links">参考リンク</a>
       </nav>
-      <a class="contact-link" href="mailto:hello@example.com">Let’s talk ↗</a>
+      <a class="header-action" href="#diagnosis">はじめる</a>
     </header>
 
-    <main>
-      <section class="hero" id="top">
-        <p class="eyebrow reveal">Creative studio / Tokyo</p>
-        <h1 class="hero-title" aria-label="Less noise, more feeling.">
-          <span class="line"><span>LESS NOISE,</span></span>
-          <span class="line accent-line"><span>MORE <em>FEELING.</em></span></span>
-        </h1>
-        <div class="hero-footer reveal">
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy reveal">
+          <p class="eyebrow">SIDE WORK FINDER</p>
+          <h1>
+            <span class="phrase">3分でわかる、</span>
+            <span class="phrase">あなたに合う</span>
+            <span class="phrase">副業タイプ診断</span>
+          </h1>
           <p>
-            伝えたいことを、削ぎ落とす。<br />
-            心に残るブランドとデジタル体験をつくります。
+            いきなり稼ぎ方を決めなくても大丈夫。10個の質問から、今の性格・時間の使い方・得意な進め方に近い副業の方向性を見つけます。
           </p>
-          <div class="scroll-cue">
-            <span>Scroll to explore</span>
-            <span class="scroll-line"></span>
+          <div class="hero-actions">
+            <a class="button primary" href="#diagnosis">診断をはじめる</a>
+            <a class="button ghost" href="#types">タイプを見る</a>
           </div>
         </div>
+
+        <aside class="hero-panel reveal" aria-label="診断の概要">
+          <div>
+            <span class="panel-label">Questions</span>
+            <strong id="question-total">10問</strong>
+          </div>
+          <div>
+            <span class="panel-label">Results</span>
+            <strong>4タイプ</strong>
+          </div>
+          <p>結果では、向いている理由・つまずきやすい点・最初の一歩をまとめて表示します。</p>
+        </aside>
       </section>
 
-      <section class="statement" id="about">
-        <p class="section-number reveal">01 / Philosophy</p>
-        <p class="statement-text reveal">
-          美しさは、足すことではなく<br />
-          <span>本質だけを残すこと。</span>
-        </p>
-        <div class="orb" aria-hidden="true"></div>
-      </section>
-
-      <section class="work" id="work">
+      <section class="diagnosis-section" id="diagnosis">
         <div class="section-heading reveal">
-          <p class="section-number">02 / Selected work</p>
-          <h2>Things we’ve made.</h2>
+          <p class="section-number">01 / Diagnosis</p>
+          <h2>
+            <span class="phrase">近いものを選ぶだけで</span>
+            <span class="phrase">OKです。</span>
+          </h2>
+          <p>
+            正解はありません。今の自分に近い選択肢を選ぶほど、納得しやすい結果になります。
+          </p>
         </div>
 
-        <div class="project-list">
-          <a class="project reveal" href="#" aria-label="Nagi Hospitality プロジェクト">
-            <span class="project-index">001</span>
-            <span class="project-name">NAGI</span>
-            <span class="project-meta">Hospitality / Identity</span>
-            <span class="project-arrow">↗</span>
-          </a>
-          <a class="project reveal" href="#" aria-label="Kanso Architecture プロジェクト">
-            <span class="project-index">002</span>
-            <span class="project-name">KANSO</span>
-            <span class="project-meta">Architecture / Digital</span>
-            <span class="project-arrow">↗</span>
-          </a>
-          <a class="project reveal" href="#" aria-label="Awa Skincare プロジェクト">
-            <span class="project-index">003</span>
-            <span class="project-name">AWA</span>
-            <span class="project-meta">Skincare / Campaign</span>
-            <span class="project-arrow">↗</span>
-          </a>
+        <form class="quiz reveal" id="quiz-form">
+          <div
+            class="progress"
+            id="quiz-progress"
+            role="progressbar"
+            aria-label="診断の進み具合"
+            aria-valuemin="1"
+            aria-valuemax="10"
+            aria-valuenow="1"
+          >
+            <span id="progress-bar"></span>
+          </div>
+          <div class="question-meta">
+            <span id="question-count">1 / 10</span>
+            <span>所要時間 約3分</span>
+          </div>
+          <fieldset class="question-card">
+            <legend id="question-title" tabindex="-1"></legend>
+            <div class="choice-grid" id="choice-grid"></div>
+          </fieldset>
+          <p class="app-error" id="app-error" role="alert" hidden></p>
+          <div class="quiz-actions">
+            <button class="button ghost" id="prev-button" type="button">戻る</button>
+            <button class="button primary" id="next-button" type="submit">次へ</button>
+          </div>
+        </form>
+
+        <article class="result-panel hidden" id="result-panel" aria-live="polite">
+          <p class="section-number">Result</p>
+          <div class="result-head">
+            <div>
+              <p class="result-kicker">
+                <span class="phrase">あなたに近い</span>
+                <span class="phrase">副業タイプ</span>
+              </p>
+              <h2 id="result-title" tabindex="-1"></h2>
+            </div>
+            <span class="result-badge" id="result-badge"></span>
+          </div>
+          <p class="result-summary" id="result-summary"></p>
+
+          <div class="result-grid">
+            <section>
+              <h3>向いている理由</h3>
+              <ul id="result-reasons"></ul>
+            </section>
+            <section>
+              <h3>苦手になりやすいポイント</h3>
+              <ul id="result-cautions"></ul>
+            </section>
+            <section>
+              <h3>最初の小さな一歩</h3>
+              <ol id="result-steps"></ol>
+            </section>
+            <section class="reference-box">
+              <h3>興味があれば見る参考リンク</h3>
+              <p>必要になったタイミングで眺めるくらいで大丈夫です。</p>
+              <div id="result-links"></div>
+            </section>
+          </div>
+
+          <div class="result-actions">
+            <button class="button primary" id="share-button" type="button">Xで結果を共有</button>
+            <button class="button ghost" id="restart-button" type="button">もう一度診断する</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="types-section" id="types">
+        <div class="section-heading reveal">
+          <p class="section-number">02 / Types</p>
+          <h2>
+            <span class="phrase">結果は</span>
+            <span class="phrase">4つの方向性に</span>
+            <span class="phrase">分かれます。</span>
+          </h2>
+        </div>
+        <div class="type-list">
+          <article class="type-card reveal">
+            <span>01</span>
+            <h3><span class="phrase">ブログ・メディア型</span></h3>
+            <p>調べる、整理する、じっくり積み上げることが得意な人向け。検索から読まれる資産を作ります。</p>
+          </article>
+          <article class="type-card reveal">
+            <span>02</span>
+            <h3><span class="phrase">SNS発信型</span></h3>
+            <p>短い発信や人とのやり取りから始めたい人向け。反応を見ながら小さく改善できます。</p>
+          </article>
+          <article class="type-card reveal">
+            <span>03</span>
+            <h3><span class="phrase">スキル販売型</span></h3>
+            <p>文章、デザイン、相談、作業代行など、今ある得意を仕事に近づけたい人向けです。</p>
+          </article>
+          <article class="type-card reveal">
+            <span>04</span>
+            <h3><span class="phrase">コンテンツ販売型</span></h3>
+            <p>経験や知識をテンプレ、教材、講座にまとめたい人向け。仕組み化と改善が大切です。</p>
+          </article>
         </div>
       </section>
 
-      <section class="contact">
-        <p class="eyebrow reveal">Have something in mind?</p>
-        <a class="contact-title reveal" href="mailto:hello@example.com">
-          LET’S MAKE<br />
-          <span>IT REAL.</span>
-          <span class="circle-arrow">↗</span>
-        </a>
+      <section class="links-section" id="links">
+        <div class="section-heading reveal">
+          <p class="section-number">03 / References</p>
+          <h2>
+            <span class="phrase">参考リンクは</span>
+            <span class="phrase">控えめに。</span>
+          </h2>
+          <p>
+            初期版では押し売りをしません。診断結果に合うサービスや学習先が決まったら、ここを差し替えられるようにしています。
+          </p>
+        </div>
       </section>
     </main>
 
     <footer>
-      <a class="logo" href="#top">YOIN<span>.</span></a>
-      <p>Tokyo, Japan</p>
-      <p>© 2026 YOIN Studio</p>
+      <a class="logo" href="#top">副業タイプ<span>診断</span></a>
+      <p>自分に合う小さな始め方を見つける。</p>
+      <p>&copy; 2026 Side Work Finder</p>
     </footer>
 
+    <script src="data.js"></script>
+    <script src="diagnosis.js"></script>
+    <script src="ui.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
