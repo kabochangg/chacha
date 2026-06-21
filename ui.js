@@ -61,12 +61,43 @@
     const elements = getRequiredElements(documentObject);
     const state = diagnosis.createQuizState(data.questions.length);
     let currentResultType = null;
+    let advanceTimer = null;
     elements.questionTotal.textContent = `${data.questions.length}問`;
 
     function updateButtons() {
       elements.prevButton.disabled = state.isFirst;
+      elements.nextButton.hidden = !state.isLast;
       elements.nextButton.disabled = !state.currentAnswer;
-      elements.nextButton.textContent = state.isLast ? "結果を見る" : "次へ";
+      elements.nextButton.textContent = "結果を見る";
+    }
+
+    function cancelPendingAdvance() {
+      if (advanceTimer !== null) {
+        windowObject.clearTimeout(advanceTimer);
+        advanceTimer = null;
+      }
+      elements.choiceGrid.classList.remove("is-advancing");
+    }
+
+    function selectChoice(type) {
+      if (advanceTimer !== null) return;
+
+      state.answer(type);
+      updateButtons();
+      if (state.isLast) return;
+
+      elements.choiceGrid.classList.add("is-advancing");
+      elements.choiceGrid.querySelectorAll("input").forEach((input) => {
+        input.disabled = true;
+      });
+
+      advanceTimer = windowObject.setTimeout(() => {
+        advanceTimer = null;
+        if (state.next()) {
+          if (state.currentIndex === 1) trackEvent("diagnosis_start");
+          renderQuestion({ moveFocus: true });
+        }
+      }, 180);
     }
 
     function focusHeading(element) {
@@ -78,6 +109,7 @@
       const question = data.questions[index];
       const progressValue = ((index + 1) / data.questions.length) * 100;
 
+      elements.choiceGrid.classList.remove("is-advancing");
       elements.questionTitle.textContent = question.title;
       elements.questionCount.textContent = `${index + 1} / ${data.questions.length}`;
       elements.progressBar.style.width = `${progressValue}%`;
@@ -98,10 +130,7 @@
         input.name = `answer-${index}`;
         input.value = choice.type;
         input.checked = state.currentAnswer === choice.type;
-        input.addEventListener("change", () => {
-          state.answer(choice.type);
-          updateButtons();
-        });
+        input.addEventListener("click", () => selectChoice(choice.type));
         text.textContent = choice.label;
         label.append(input, text);
         return label;
@@ -240,16 +269,12 @@
 
     elements.quizForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      if (!state.currentAnswer) return;
-      if (state.isLast) {
-        renderResult();
-      } else if (state.next()) {
-        if (state.currentIndex === 1) trackEvent("diagnosis_start");
-        renderQuestion({ moveFocus: true });
-      }
+      if (!state.isLast || !state.currentAnswer) return;
+      renderResult();
     });
 
     elements.prevButton.addEventListener("click", () => {
+      cancelPendingAdvance();
       if (state.previous()) renderQuestion({ moveFocus: true });
     });
 
@@ -263,6 +288,7 @@
     });
 
     elements.restartButton.addEventListener("click", () => {
+      cancelPendingAdvance();
       state.reset();
       elements.resultPanel.classList.add("hidden");
       elements.quizForm.classList.remove("hidden");

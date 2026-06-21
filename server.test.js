@@ -52,6 +52,8 @@ test("静的ファイル、HEAD、404、未対応メソッドを処理する", a
   assert.equal(page.statusCode, 200);
   assert.match(page.headers["content-type"], /text\/html/);
   assert.match(page.body, /副業タイプ診断/);
+  assert.match(page.body, /id="next-button" type="submit" hidden>結果を見る/);
+  assert.doesNotMatch(page.body, /id="next-button"[^>]*>次へ/);
 
   const head = await request(server, "/data.js", { method: "HEAD" });
   assert.equal(head.statusCode, 200);
