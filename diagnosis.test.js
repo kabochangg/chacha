@@ -113,3 +113,16 @@ test("有効な広告にはHTTPS URLが必要", () => {
 
   assert.throws(() => diagnosis.validateData(invalidData), /HTTPS/);
 });
+
+
+test("all result types have active initial affiliate offers", () => {
+  for (const result of Object.values(data.results)) {
+    const activeOffers = ui.getActiveAffiliateOffers(result.affiliateOffers);
+    assert.ok(activeOffers.length > 0);
+    assert.ok(activeOffers.length <= 3);
+    for (const offer of activeOffers) {
+      assert.match(offer.url, /^https:\/\//);
+      assert.equal(offer.enabled, true);
+    }
+  }
+});
