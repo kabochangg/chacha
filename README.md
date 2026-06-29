@@ -1,83 +1,177 @@
-# 副業タイプ診断
+# 勇者のあとしまつ
 
-10問の回答から、ブログ・SNS・スキル販売・コンテンツ販売のうち、現在の進め方に近い副業タイプを表示する静的サイトです。Cloudflare Pagesでの公開、成果報酬広告、AdSense申請、問い合わせフォームに対応しています。
+## ダンジョン清掃員の生活
 
-選択肢を押すと自動的に次の質問へ進みます。前の質問へ戻ることができ、最終質問だけは回答後に「結果を見る」を押して結果を表示します。
+`chacha` は、2D見下ろし型アクションRPG「勇者のあとしまつ / ダンジョン清掃員の生活」を開発するための Web アプリゲームプロジェクトです。
 
-## ローカル確認
+勇者が去ったあとのダンジョンに清掃員として入り、瓦礫、壊れた宝箱、罠、落とし物、魔物の残骸を片付けながら素材を回収し、生活費を稼いで道具を強化していくゲームを目指します。
 
-```powershell
-node server.js
+## コンセプト
+
+勇者が去ったあと、ダンジョンにはまだ仕事が残っている。
+
+プレイヤーは英雄ではなく、戦いの後始末をする労働者です。敵を倒して強くなる爽快感よりも、危険な現場で作業し、素材を持ち帰り、道具を強化し、少しずつ生活を安定させていく体験を中心にします。
+
+## MVP
+
+初期版では、サーバーやデータベースを使わない静的 Web ゲームとして実装します。
+
+MVPで実装する主な範囲は次のとおりです。
+
+- タイトル画面
+- 拠点画面
+- ダンジョン画面
+- リザルト画面
+- キャラクター移動
+- 掃除アクション
+- アイテム回収
+- HPまたはスタミナ
+- 所持金と素材
+- ほうき、バッグの強化
+- localStorageによる簡易セーブ
+- スマホ縦画面対応
+- PWA対応
+- Cloudflare Pages公開
+
+MVPでは、ログイン、ランキング、クラウドセーブ、課金、ガチャ、マルチプレイ、チャット、リアルタイム通信、大規模マップ、高度な3D演出は実装しません。
+
+## 技術構成
+
+採用予定の技術は次のとおりです。
+
+- TypeScript
+- Phaser.js
+- Vite
+- CSS
+- localStorage
+- PWA
+- Cloudflare Pages
+
+サーバー機能は初期版では使いません。将来的にログイン、クラウドセーブ、ランキング、日替わりダンジョンなどを追加する場合は、Cloudflare Workers、Supabase、Firebase、Cloudflare D1などの導入を検討します。
+
+## 想定ディレクトリ
+
+実装時は次の構成を基本にします。
+
+```txt
+project-root/
+  public/
+    icons/
+    manifest.json
+    assets/
+      images/
+      audio/
+  src/
+    main.ts
+    game/
+      scenes/
+        BootScene.ts
+        TitleScene.ts
+        BaseScene.ts
+        DungeonScene.ts
+        ResultScene.ts
+      entities/
+        Player.ts
+        Enemy.ts
+        Debris.ts
+        Item.ts
+      systems/
+        SaveSystem.ts
+        InventorySystem.ts
+        UpgradeSystem.ts
+        InputSystem.ts
+      data/
+        items.ts
+        dungeons.ts
+        upgrades.ts
+      ui/
+        Hud.ts
+        VirtualPad.ts
+  index.html
+  package.json
+  vite.config.ts
 ```
 
-`http://127.0.0.1:4173` を開きます。Cloudflare Pages Functionsはこの簡易サーバーでは動作しないため、問い合わせ送信の確認にはWranglerを使用してください。
+## ゲームループ
 
-## 公開前に必ず設定する項目
+基本ループは次の流れです。
 
-### `config.js`
-
-- `siteUrl`: 独自ドメインのURL
-- `adsensePublisherId`: `ca-pub-` から始まるAdSense ID
-- `adsenseResultSlotId`: 承認後に作成する結果末尾用広告枠ID
-- `turnstileSiteKey`: Cloudflare Turnstileのサイトキー
-- `cloudflareAnalyticsToken`: Cloudflare Web Analyticsのトークン
-- `operatorName`: 公開する屋号またはハンドル名
-
-### ドメイン依存ファイル
-
-`robots.txt` と `sitemap.xml` の `YOUR-DOMAIN.example` を独自ドメインへ置き換えます。
-
-### AdSense
-
-AdSenseから示された行を `ads.txt` に設定します。申請時は `adsensePublisherId` のみ設定し、広告枠IDが未設定なら結果画面に空の広告枠は出ません。
-
-### 成果報酬広告
-
-`data.js` の各結果にある `affiliateOffers` を編集します。
-
-- `id`: 計測用の一意なID
-- `name`: サービス名
-- `description`: 短い特徴
-- `cta`: ボタン文言
-- `url`: ASPから発行されたHTTPS広告URL
-- `network`: `a8` または `moshimo` など
-- `enabled`: 提携・掲載可能になったら `true`
-
-`enabled: true` かつHTTPS URLが設定された広告だけが最大3件表示されます。
-
-## Cloudflare Pages設定
-
-Git連携ではビルドコマンドを空欄、出力ディレクトリを `/` とします。環境変数・シークレットには次を設定します。
-
-- `TURNSTILE_SECRET_KEY`
-- `RESEND_API_KEY`
-- `CONTACT_TO_EMAIL`
-- `CONTACT_FROM_EMAIL`（任意。Resendで認証済みの送信元）
-
-問い合わせメールはResend APIを利用します。`CONTACT_FROM_EMAIL` が未設定の場合はResendのテスト用送信元を使います。
-
-クリックイベントをCloudflare Analytics Engineへ保存する場合は、`wrangler.toml` のコメントを外して `SITE_EVENTS` を有効化します。未設定でも診断は正常に動作します。
-
-## テスト
-
-```powershell
-node --check data.js
-node --check diagnosis.js
-node --check ui.js
-node --check script.js
-node --check site-bootstrap.js
-node --check contact.js
-node --check server.js
-node --test
+```txt
+拠点で準備する
+↓
+ダンジョンを選ぶ
+↓
+清掃作業を行う
+↓
+素材を回収する
+↓
+危険を避けて帰還する
+↓
+報酬を得る
+↓
+道具を強化する
+↓
+次のダンジョンへ進む
 ```
 
-## 公開後の確認
+最初の成功条件は、プレイヤーが「もう一回だけダンジョンに行きたい」と感じることです。
 
-- 独自ドメインとHTTPSが有効
-- canonical、`robots.txt`、`sitemap.xml` が本番ドメインを参照
-- `ads.txt` がブラウザから取得可能
-- 4タイプの診断結果が正常
-- 承認済みASP広告だけが表示
-- AdSense広告は結果末尾だけに表示
-- 問い合わせが指定メールへ届く
-- フッターから運営者情報、問い合わせ、プライバシーポリシー、免責事項へ移動可能
+## スマホ操作方針
+
+MVPでは、縦画面で快適に遊べる操作を優先します。
+
+- 移動は左下の固定仮想スティックで行う
+- 右下には常時2つのボタンを置く
+- 大ボタンは掃除、小ボタンは回避にする
+- 掃除は長押し操作にし、残骸の耐久値を少しずつ削る
+- 「調べる」は常時ボタンにせず、宝箱、出口、特殊オブジェクトに近づいた時だけ掃除ボタンを状況アクションへ切り替える
+- 素材は近づくと自動回収し、回収専用ボタンは作らない
+- メニューは右上の小さな一時停止ボタンで開く
+- タッチ操作中にブラウザスクロールが起きないようにする
+
+掃除中は進捗リング、短い揺れ、粉じん、掃き音などで手応えを出します。長押しを離した場合は掃除を中断できるようにします。
+
+## ローカル開発
+
+実装後は次のコマンドで開発する想定です。
+
+```powershell
+npm install
+npm run dev
+```
+
+ビルド確認は次のコマンドで行います。
+
+```powershell
+npm run build
+```
+
+現時点ではドキュメント刷新段階のため、実際の `package.json` や Vite 構成は今後追加します。
+
+## 公開方針
+
+初期公開先は Cloudflare Pages を想定します。
+
+- 静的ビルド成果物を公開する
+- PWAとしてホーム画面追加に対応する
+- Service Workerで基本ファイルをキャッシュする
+- スマホ縦画面を優先して確認する
+
+## 受け入れ基準
+
+MVPは次の状態を満たしたら完成とします。
+
+- タイトル画面からゲーム開始できる
+- 拠点からダンジョンに入れる
+- プレイヤーを操作できる
+- 残骸を掃除できる
+- 素材を拾える
+- 出口から帰還できる
+- リザルトが表示される
+- 所持金が増える
+- ほうきまたはバッグを強化できる
+- ブラウザを閉じても続きから遊べる
+- スマホで操作できる
+- 移動しながら掃除ボタンを押し続けられる
+- 仮想スティック操作中に画面スクロールが起きない
+- Cloudflare Pagesで公開できる
