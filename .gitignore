@@ -6,7 +6,7 @@ Desktop.ini
 # Editor settings
 .vscode/
 .idea/
-
+.vite/
 # Temporary files
 *.log
 *.tmp

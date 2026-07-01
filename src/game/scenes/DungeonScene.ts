@@ -39,8 +39,18 @@ type EnemyObject = Phaser.GameObjects.Rectangle & {
   originX: number;
   originY: number;
   patrolAxis: "x" | "y";
+  visual: Phaser.GameObjects.Container;
   warning: Phaser.GameObjects.Text;
+  core: Phaser.GameObjects.Ellipse;
   shadow: Phaser.GameObjects.Ellipse;
+};
+
+type PlayerVisual = {
+  root: Phaser.GameObjects.Container;
+  hat: Phaser.GameObjects.Ellipse;
+  bag: Phaser.GameObjects.Ellipse;
+  broom: Phaser.GameObjects.Container;
+  parts: Phaser.GameObjects.GameObject[];
 };
 
 type TrapObject = {
@@ -64,6 +74,7 @@ const DEBRIS_KINDS: DebrisKind[] = [
 
 export class DungeonScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Rectangle & { body: Phaser.Physics.Arcade.Body };
+  private playerVisual!: PlayerVisual;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: Record<"up" | "left" | "down" | "right", Phaser.Input.Keyboard.Key>;
   private space!: Phaser.Input.Keyboard.Key;
@@ -186,6 +197,7 @@ export class DungeonScene extends Phaser.Scene {
     this.player.body.setVelocity(input.x * speed, input.y * speed);
 
     if (input.lengthSq() > 0.001) this.lastFacing.copy(input);
+    this.updatePlayerVisual(time, input);
 
     this.updateEnemies(time);
     this.checkHazards(time);
@@ -337,33 +349,107 @@ export class DungeonScene extends Phaser.Scene {
   private addEnemy(tileX: number, tileY: number, patrolAxis: "x" | "y"): void {
     const x = tileX * TILE + TILE / 2;
     const y = tileY * TILE + TILE / 2;
-    const shadow = this.add.ellipse(x, y + 12, 42, 16, 0x190b0c, 0.38);
-    const enemy = this.add.rectangle(x, y, 32, 28, 0xdc5c52, 1)
-      .setStrokeStyle(3, 0xffe0a8, 0.9) as EnemyObject;
+    const shadow = this.add.ellipse(0, 14, 42, 16, 0x190b0c, 0.38);
+    const glow = this.add.ellipse(0, 1, 39, 31, 0xff7b74, 0.24)
+      .setStrokeStyle(2, 0xffe0a8, 0.65);
+    const core = this.add.ellipse(0, 0, 33, 27, 0x9b335f, 0.96)
+      .setStrokeStyle(3, 0xdc5c52, 0.92);
+    const cap = this.add.ellipse(-4, -5, 19, 10, 0xc65172, 0.78);
+    const bubbleA = this.add.ellipse(8, 3, 8, 7, 0xff8a92, 0.56);
+    const bubbleB = this.add.ellipse(-10, 5, 6, 5, 0x6f2449, 0.55);
+    const eyeA = this.add.ellipse(-6, -3, 4, 5, 0xfff2c2, 0.95);
+    const eyeB = this.add.ellipse(6, -3, 4, 5, 0xfff2c2, 0.95);
+    const warning = this.add.text(0, -21, "!", {
+      fontFamily: "sans-serif",
+      fontSize: "20px",
+      color: "#fff2c2",
+      fontStyle: "900",
+      stroke: "#5d171d",
+      strokeThickness: 3
+    }).setOrigin(0.5);
+    const visual = this.add.container(x, y, [shadow, glow, core, cap, bubbleA, bubbleB, eyeA, eyeB, warning])
+      .setDepth(24);
+
+    const enemy = this.add.rectangle(x, y, 32, 28, 0xdc5c52, 0) as EnemyObject;
     this.physics.add.existing(enemy);
     enemy.body.setImmovable(true);
+    enemy.body.setSize(32, 28);
     enemy.originX = enemy.x;
     enemy.originY = enemy.y;
     enemy.patrolAxis = patrolAxis;
-    enemy.warning = this.add.text(enemy.x, enemy.y, "!", {
-      fontFamily: "sans-serif",
-      fontSize: "24px",
-      color: "#fff2c2",
-      fontStyle: "900",
-    }).setOrigin(0.5);
+    enemy.visual = visual;
+    enemy.warning = warning;
+    enemy.core = core;
     enemy.shadow = shadow;
     this.enemies.push(enemy);
   }
 
   private createPlayer(): void {
-    const body = this.add.rectangle(TILE * 2.5, TILE * 2.5, 28, 34, 0xe8c070, 1)
-      .setStrokeStyle(2, 0x3b2717, 1);
+    const x = TILE * 2.5;
+    const y = TILE * 2.5;
+    const body = this.add.rectangle(x, y, 28, 34, 0xe8c070, 0);
     this.physics.add.existing(body);
     this.player = body as Phaser.GameObjects.Rectangle & { body: Phaser.Physics.Arcade.Body };
     this.player.body.setSize(24, 28);
     this.player.body.setCollideWorldBounds(true);
+    this.playerVisual = this.createCleanerVisual(x, y);
 
     this.cleaningRing = this.add.graphics().setDepth(40);
+  }
+
+  private createCleanerVisual(x: number, y: number): PlayerVisual {
+    const shadow = this.add.ellipse(0, 17, 25, 9, 0x190b0c, 0.38);
+    const bag = this.add.ellipse(-9, 2, 16, 24, 0x7c6548, 1)
+      .setStrokeStyle(2, 0x3b2717, 0.92);
+    const body = this.add.rectangle(0, 5, 17, 21, 0x607789, 1)
+      .setStrokeStyle(2, 0x26313b, 1);
+    const apron = this.add.triangle(0, 9, 0, 0, 14, 0, 7, 15, 0x8b5f35, 1)
+      .setStrokeStyle(1, 0x3b2717, 0.9);
+    const face = this.add.ellipse(0, -6, 15, 13, 0xd8b891, 1)
+      .setStrokeStyle(1, 0x3b2717, 0.85);
+    const mask = this.add.rectangle(0, -4, 13, 6, 0xe6ddd2, 1)
+      .setStrokeStyle(1, 0x6d6257, 0.8);
+    const eyeA = this.add.ellipse(-4, -9, 2.5, 3.5, 0x171722, 1);
+    const eyeB = this.add.ellipse(4, -9, 2.5, 3.5, 0x171722, 1);
+    const hat = this.add.ellipse(0, -15, 24, 12, 0xd6a34d, 1)
+      .setStrokeStyle(2, 0x6e4921, 1);
+    const hatTop = this.add.ellipse(0, -20, 16, 10, 0xc88d3b, 1)
+      .setStrokeStyle(1, 0x6e4921, 0.85);
+    const broom = this.createBroomVisual();
+
+    const root = this.add.container(x, y, [
+      shadow,
+      bag,
+      broom,
+      body,
+      apron,
+      face,
+      mask,
+      eyeA,
+      eyeB,
+      hat,
+      hatTop
+    ]).setDepth(28);
+
+    return {
+      root,
+      hat,
+      bag,
+      broom,
+      parts: [bag, broom, body, apron, face, mask, eyeA, eyeB, hat, hatTop]
+    };
+  }
+
+  private createBroomVisual(): Phaser.GameObjects.Container {
+    const handle = this.add.rectangle(0, 4, 4, 31, 0x8a5a2f, 1)
+      .setStrokeStyle(1, 0x3b2717, 0.85)
+      .setOrigin(0.5, 0.2);
+    const band = this.add.rectangle(0, 22, 9, 4, 0x6aa2cf, 1)
+      .setStrokeStyle(1, 0x26313b, 0.85);
+    const bristles = this.add.triangle(0, 33, 0, 0, 18, 0, 9, 17, 0xc99b5d, 1)
+      .setStrokeStyle(1, 0x5a3d22, 0.9)
+      .setOrigin(0.5, 0.3);
+    return this.add.container(9, 4, [handle, band, bristles]);
   }
 
   private createHud(): void {
@@ -640,10 +726,28 @@ export class DungeonScene extends Phaser.Scene {
       const offset = Math.sin(time / 850) * 72;
       if (enemy.patrolAxis === "x") enemy.setX(enemy.originX + offset);
       else enemy.setY(enemy.originY + offset);
-      enemy.warning.setPosition(enemy.x, enemy.y - 1);
-      enemy.shadow.setPosition(enemy.x, enemy.y + 12);
+      enemy.visual.setPosition(enemy.x, enemy.y);
+      const wobble = Math.sin(time / 150);
+      enemy.core.setScale(1 + wobble * 0.055, 1 - wobble * 0.045);
+      enemy.warning.setScale(1 + Math.max(0, wobble) * 0.12);
+      enemy.visual.setAngle(enemy.patrolAxis === "x" ? wobble * 2 : -wobble * 2);
       enemy.body.updateFromGameObject();
     }
+  }
+
+  private updatePlayerVisual(time: number, input: Phaser.Math.Vector2): void {
+    if (!this.playerVisual) return;
+
+    const moving = input.lengthSq() > 0.001;
+    const bob = moving ? Math.sin(time / 115) * 1.6 : Math.sin(time / 420) * 0.45;
+    const sway = moving ? Math.sin(time / 130) : 0;
+    const facing = this.lastFacing;
+
+    this.playerVisual.root.setPosition(this.player.x, this.player.y + bob);
+    this.playerVisual.hat.setY(-15 + sway * 0.9);
+    this.playerVisual.bag.setPosition(-9 - facing.x * 2.2, 2 - facing.y * 1.4 - sway * 0.7);
+    this.playerVisual.broom.setPosition(facing.x * 10, 4 + facing.y * 6);
+    this.playerVisual.broom.setRotation(facing.angle() - Math.PI / 2 + sway * 0.035);
   }
 
   private checkHazards(time: number): void {
@@ -665,12 +769,27 @@ export class DungeonScene extends Phaser.Scene {
     this.damageTaken += damage;
     this.lastDamageAt = time;
     this.cameras.main.shake(110, 0.008);
-    this.player.setFillStyle(0xfff0a8);
-    this.time.delayedCall(120, () => {
-      if (this.player?.active) this.player.setFillStyle(0xe8c070);
-    });
+    this.flashPlayerVisual();
     this.showInfo(enemyHit ? `危険な魔物に接触: ${damage}ダメージ` : `危険床を踏んだ: ${damage}ダメージ`, 820);
     this.playTone(95, 0.09, "sawtooth", 0.045);
+  }
+
+  private flashPlayerVisual(): void {
+    if (!this.playerVisual) return;
+
+    this.tweens.add({
+      targets: this.playerVisual.parts,
+      alpha: 0.36,
+      duration: 55,
+      yoyo: true,
+      repeat: 1,
+      ease: "Sine.easeInOut",
+      onComplete: () => {
+        for (const part of this.playerVisual.parts) {
+          if ("setAlpha" in part && typeof part.setAlpha === "function") part.setAlpha(1);
+        }
+      }
+    });
   }
 
   private refreshHud(nearExit: boolean): void {
