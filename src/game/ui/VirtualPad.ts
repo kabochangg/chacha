@@ -16,13 +16,13 @@ export class VirtualPad {
   constructor(private readonly scene: Phaser.Scene) {
     const { width, height } = scene.scale;
     const bottomInset = readSafeAreaInset("bottom");
-    this.center.set(86, height - Math.max(104, bottomInset + 86));
+    this.center.set(88, height - Math.max(112, bottomInset + 92));
 
     this.base = scene.add.circle(this.center.x, this.center.y, this.radius, 0x1e2430, 0.62)
       .setStrokeStyle(3, 0xe2b56f, 0.7)
       .setScrollFactor(0)
       .setDepth(100)
-      .setInteractive(new Phaser.Geom.Circle(0, 0, this.radius + 26), Phaser.Geom.Circle.Contains);
+      .setInteractive(new Phaser.Geom.Circle(this.radius, this.radius, this.radius + 18), Phaser.Geom.Circle.Contains);
 
     this.knob = scene.add.circle(this.center.x, this.center.y, 24, 0xf2d49b, 0.88)
       .setStrokeStyle(2, 0x5b3a1f, 0.85)
@@ -30,6 +30,7 @@ export class VirtualPad {
       .setDepth(101);
 
     this.base.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (this.activePointerId !== null) return;
       this.activePointerId = pointer.id;
       this.updateFromPointer(pointer);
     });

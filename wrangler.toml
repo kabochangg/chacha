@@ -1,8 +1,3 @@
-name = "side-work-finder"
+name = "chacha"
 compatibility_date = "2026-06-21"
-pages_build_output_dir = "."
-
-# 任意: クリックイベントをCloudflare Analytics Engineへ保存する場合に有効化します。
-# [[analytics_engine_datasets]]
-# binding = "SITE_EVENTS"
-# dataset = "side_work_finder_events"
+pages_build_output_dir = "dist"

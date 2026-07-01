@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 
+type PrimaryActionMode = "clean" | "exit";
+
 export class ActionControls {
   private cleanHeld = false;
   private cleanPressed = false;
@@ -7,60 +9,65 @@ export class ActionControls {
   private cleanPointerId: number | null = null;
   private dodgePointerId: number | null = null;
   private readonly cleanButton: Phaser.GameObjects.Arc;
+  private readonly cleanLabel: Phaser.GameObjects.Text;
   private readonly dodgeButton: Phaser.GameObjects.Arc;
+  private readonly pauseButton: Phaser.GameObjects.Rectangle;
   private readonly handlePointerEnd: (pointer: Phaser.Input.Pointer) => void;
   private readonly handleReleaseAll: () => void;
+  private primaryMode: PrimaryActionMode = "clean";
   private destroyed = false;
 
   constructor(private readonly scene: Phaser.Scene) {
     const { width, height } = scene.scale;
     const topInset = readSafeAreaInset("top");
     const bottomInset = readSafeAreaInset("bottom");
-    const cleanX = width - 82;
-    const cleanY = height - Math.max(108, bottomInset + 88);
-    const dodgeX = width - 146;
-    const dodgeY = cleanY - 62;
-    const pauseX = width - 38;
-    const pauseY = Math.max(38, topInset + 32);
+    const cleanX = width - 76;
+    const cleanY = height - Math.max(112, bottomInset + 92);
+    const dodgeX = width - 148;
+    const dodgeY = cleanY - 88;
+    const pauseX = width - 40;
+    const pauseY = Math.max(42, topInset + 34);
 
-    this.cleanButton = scene.add.circle(cleanX, cleanY, 42, 0xd8913d, 0.88)
-      .setStrokeStyle(3, 0xffd08a, 0.9)
-      .setScrollFactor(0)
-      .setDepth(100)
-      .setInteractive(new Phaser.Geom.Circle(0, 0, 54), Phaser.Geom.Circle.Contains);
+    const cleanControl = this.createCircleButton({
+      x: cleanX,
+      y: cleanY,
+      radius: 42,
+      hitRadius: 46,
+      label: "掃除",
+      fillColor: 0xd8913d,
+      strokeColor: 0xffd08a,
+      labelColor: "#25170e",
+      fontSize: 19
+    });
+    this.cleanButton = cleanControl.button;
+    this.cleanLabel = cleanControl.label;
 
-    scene.add.text(cleanX, cleanY, "掃除", {
-      fontFamily: "sans-serif",
-      fontSize: "17px",
-      color: "#25170e",
-      fontStyle: "700"
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
+    const dodgeControl = this.createCircleButton({
+      x: dodgeX,
+      y: dodgeY,
+      radius: 29,
+      hitRadius: 32,
+      label: "回避",
+      fillColor: 0x4e6b7d,
+      strokeColor: 0xa7d2e7,
+      labelColor: "#eef8ff",
+      fontSize: 15
+    });
+    this.dodgeButton = dodgeControl.button;
 
-    this.dodgeButton = scene.add.circle(dodgeX, dodgeY, 29, 0x4e6b7d, 0.84)
-      .setStrokeStyle(2, 0xa7d2e7, 0.8)
-      .setScrollFactor(0)
-      .setDepth(100)
-      .setInteractive(new Phaser.Geom.Circle(0, 0, 36), Phaser.Geom.Circle.Contains);
-
-    scene.add.text(dodgeX, dodgeY, "回避", {
-      fontFamily: "sans-serif",
-      fontSize: "14px",
-      color: "#eef8ff",
-      fontStyle: "700"
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
-
-    const pause = scene.add.rectangle(pauseX, pauseY, 52, 52, 0x1e2430, 0.62)
-      .setStrokeStyle(2, 0xe2b56f, 0.72)
-      .setScrollFactor(0)
-      .setDepth(100)
-      .setInteractive({ useHandCursor: true });
-
-    scene.add.text(pauseX, pauseY, "II", {
-      fontFamily: "sans-serif",
-      fontSize: "22px",
-      color: "#f8e7c7",
-      fontStyle: "700"
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
+    this.pauseButton = this.createRectButton({
+      x: pauseX,
+      y: pauseY,
+      width: 52,
+      height: 52,
+      hitWidth: 56,
+      hitHeight: 56,
+      label: "II",
+      fillColor: 0x1e2430,
+      strokeColor: 0xe2b56f,
+      labelColor: "#f8e7c7",
+      fontSize: 22
+    });
 
     this.cleanButton.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (this.cleanPointerId !== null) return;
@@ -107,7 +114,7 @@ export class ActionControls {
       this.destroy();
     });
 
-    pause.on("pointerup", () => {
+    this.pauseButton.on("pointerup", () => {
       this.handleReleaseAll();
       scene.scene.start("BaseScene");
     });
@@ -129,6 +136,24 @@ export class ActionControls {
     return true;
   }
 
+  setPrimaryActionMode(mode: PrimaryActionMode): void {
+    if (this.primaryMode === mode) return;
+    this.primaryMode = mode;
+
+    if (mode === "exit") {
+      this.cleanButton.setFillStyle(0x4d8f6a, 0.92);
+      this.cleanButton.setStrokeStyle(3, 0xc6ffd0, 0.95);
+      this.cleanLabel.setText("出口");
+      this.cleanLabel.setColor("#f8fff0");
+      return;
+    }
+
+    this.cleanButton.setFillStyle(0xd8913d, 0.88);
+    this.cleanButton.setStrokeStyle(3, 0xffd08a, 0.9);
+    this.cleanLabel.setText("掃除");
+    this.cleanLabel.setColor("#25170e");
+  }
+
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
@@ -137,6 +162,82 @@ export class ActionControls {
     this.scene.input.off("pointercancel", this.handlePointerEnd);
     this.scene.game.events.off(Phaser.Core.Events.BLUR, this.handleReleaseAll);
     this.handleReleaseAll();
+  }
+
+  private createCircleButton(config: {
+    x: number;
+    y: number;
+    radius: number;
+    hitRadius: number;
+    label: string;
+    fillColor: number;
+    strokeColor: number;
+    labelColor: string;
+    fontSize: number;
+  }): { button: Phaser.GameObjects.Arc; label: Phaser.GameObjects.Text } {
+    const button = this.scene.add.circle(config.x, config.y, config.radius, config.fillColor, 0.88)
+      .setStrokeStyle(3, config.strokeColor, 0.9)
+      .setScrollFactor(0)
+      .setDepth(100);
+
+    button.setInteractive(
+      new Phaser.Geom.Circle(config.radius, config.radius, config.hitRadius),
+      Phaser.Geom.Circle.Contains
+    );
+
+    const label = this.scene.add.text(config.x, config.y, config.label, {
+      fontFamily: "sans-serif",
+      fontSize: `${config.fontSize}px`,
+      color: config.labelColor,
+      fontStyle: "700"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
+
+    return { button, label };
+  }
+
+  private createRectButton(config: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    hitWidth: number;
+    hitHeight: number;
+    label: string;
+    fillColor: number;
+    strokeColor: number;
+    labelColor: string;
+    fontSize: number;
+  }): Phaser.GameObjects.Rectangle {
+    const button = this.scene.add.rectangle(
+      config.x,
+      config.y,
+      config.width,
+      config.height,
+      config.fillColor,
+      0.62
+    )
+      .setStrokeStyle(2, config.strokeColor, 0.72)
+      .setScrollFactor(0)
+      .setDepth(100);
+
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(
+        config.width / 2 - config.hitWidth / 2,
+        config.height / 2 - config.hitHeight / 2,
+        config.hitWidth,
+        config.hitHeight
+      ),
+      Phaser.Geom.Rectangle.Contains
+    );
+
+    this.scene.add.text(config.x, config.y, config.label, {
+      fontFamily: "sans-serif",
+      fontSize: `${config.fontSize}px`,
+      color: config.labelColor,
+      fontStyle: "700"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
+
+    return button;
   }
 }
 

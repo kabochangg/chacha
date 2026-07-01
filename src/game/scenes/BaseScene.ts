@@ -45,11 +45,32 @@ export class BaseScene extends Phaser.Scene {
       align: "center"
     }).setOrigin(0.5);
 
+    const broomCost = getBroomUpgradeCost(this.save.player.broomLevel);
+    const bagCost = getBagUpgradeCost(this.save.player.bagLevel);
+    const canUpgradeBroom = this.save.player.money >= broomCost;
+    const canUpgradeBag = this.save.player.money >= bagCost;
+
     this.createButton(width / 2, height - 260, 270, 60, "はじまりの地下道へ", 0xd8913d, () => {
       this.scene.start("DungeonScene");
     });
-    this.createButton(width / 2, height - 188, 270, 54, "ほうきを強化", 0x6d8444, () => this.upgradeBroom());
-    this.createButton(width / 2, height - 124, 270, 54, "バッグを強化", 0x4e6b7d, () => this.upgradeBag());
+    this.createButton(
+      width / 2,
+      height - 188,
+      270,
+      54,
+      `ほうきを強化 ${broomCost}G`,
+      canUpgradeBroom ? 0x7fa04a : 0x43513a,
+      () => this.upgradeBroom()
+    );
+    this.createButton(
+      width / 2,
+      height - 124,
+      270,
+      54,
+      `バッグを強化 ${bagCost}G`,
+      canUpgradeBag ? 0x5f86a0 : 0x3e4d5a,
+      () => this.upgradeBag()
+    );
     this.createButton(width / 2, height - 60, 270, 48, "タイトルへ", 0x2a2d38, () => this.scene.start("TitleScene"));
 
     this.refreshStatus();
@@ -87,6 +108,7 @@ export class BaseScene extends Phaser.Scene {
     saveGame(this.save);
     this.messageText.setText("ほうきの清掃力が上がった。");
     this.refreshStatus();
+    this.time.delayedCall(420, () => this.scene.restart());
   }
 
   private upgradeBag(): void {
@@ -100,15 +122,21 @@ export class BaseScene extends Phaser.Scene {
     saveGame(this.save);
     this.messageText.setText("バッグの容量が増えた。");
     this.refreshStatus();
+    this.time.delayedCall(420, () => this.scene.restart());
   }
 
   private refreshStatus(): void {
     const capacity = getBagCapacity(this.save.player.bagLevel);
     const inventoryCount = getInventoryCount(this.save.inventory);
+    const broomCost = getBroomUpgradeCost(this.save.player.broomLevel);
+    const bagCost = getBagUpgradeCost(this.save.player.bagLevel);
+    const broomShortage = Math.max(0, broomCost - this.save.player.money);
+    const bagShortage = Math.max(0, bagCost - this.save.player.money);
     this.statusText.setText(
       `ほうき Lv.${this.save.player.broomLevel}   バッグ Lv.${this.save.player.bagLevel}\n` +
       `所持金 ${this.save.player.money}G   バッグ容量 ${inventoryCount} / ${capacity}\n` +
-      `次の強化: ほうき ${getBroomUpgradeCost(this.save.player.broomLevel)}G / バッグ ${getBagUpgradeCost(this.save.player.bagLevel)}G`
+      `次: ほうき ${broomShortage === 0 ? "強化可能" : `あと${broomShortage}G`} / ` +
+      `バッグ ${bagShortage === 0 ? "強化可能" : `あと${bagShortage}G`}`
     );
   }
 }

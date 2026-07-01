@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# TODO: 独自ドメイン取得後に書き換えてください。
-Sitemap: https://YOUR-DOMAIN.example/sitemap.xml
+Sitemap: https://chacha.pages.dev/sitemap.xml

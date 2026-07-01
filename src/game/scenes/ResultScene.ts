@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { ITEMS, type ItemId } from "../data/items";
+import { getBagUpgradeCost, getBroomUpgradeCost } from "../data/upgrades";
 import { loadSave, saveGame } from "../systems/SaveSystem";
 import type { RunResult } from "../types";
 
@@ -39,12 +40,20 @@ export class ResultScene extends Phaser.Scene {
     const minutes = Math.floor(seconds / 60);
     const rest = String(seconds % 60).padStart(2, "0");
     const inventoryText = this.formatInventory(this.result.inventory);
+    const broomCost = getBroomUpgradeCost(save.player.broomLevel);
+    const bagCost = getBagUpgradeCost(save.player.bagLevel);
+    const nearestUpgrade = Math.min(
+      Math.max(0, broomCost - save.player.money),
+      Math.max(0, bagCost - save.player.money)
+    );
+    const nextUpgradeText = nearestUpgrade === 0 ? "強化可能" : `次の強化まで あと${nearestUpgrade}G`;
 
     this.add.text(width / 2, 168,
       `ランク ${this.result.rank}\n` +
       `清掃率 ${cleanRate}% (${this.result.cleaned}/${this.result.totalDebris})\n` +
       `回収素材 ${inventoryText}\n` +
-      `獲得金額 ${this.result.earnedMoney}G\n` +
+      `今回の稼ぎ ${this.result.earnedMoney}G / 所持金 ${save.player.money}G\n` +
+      `${nextUpgradeText}\n` +
       `被ダメージ ${this.result.damageTaken} / 作業時間 ${minutes}:${rest}`,
       {
         fontFamily: "sans-serif",
