@@ -6,11 +6,15 @@ export class ActionControls {
   private cleanHeld = false;
   private cleanPressed = false;
   private dodgePressed = false;
+  private attackPressed = false;
+  private pausePressed = false;
   private cleanPointerId: number | null = null;
   private dodgePointerId: number | null = null;
+  private attackPointerId: number | null = null;
   private readonly cleanButton: Phaser.GameObjects.Arc;
   private readonly cleanLabel: Phaser.GameObjects.Text;
   private readonly dodgeButton: Phaser.GameObjects.Arc;
+  private readonly attackButton: Phaser.GameObjects.Arc;
   private readonly pauseButton: Phaser.GameObjects.Rectangle;
   private readonly handlePointerEnd: (pointer: Phaser.Input.Pointer) => void;
   private readonly handleReleaseAll: () => void;
@@ -23,8 +27,10 @@ export class ActionControls {
     const bottomInset = readSafeAreaInset("bottom");
     const cleanX = width - 76;
     const cleanY = height - Math.max(112, bottomInset + 92);
-    const dodgeX = width - 148;
-    const dodgeY = cleanY - 88;
+    const attackX = cleanX;
+    const attackY = cleanY - 104;
+    const dodgeX = width - 156;
+    const dodgeY = cleanY - 52;
     const pauseX = width - 40;
     const pauseY = Math.max(42, topInset + 34);
 
@@ -32,7 +38,7 @@ export class ActionControls {
       x: cleanX,
       y: cleanY,
       radius: 42,
-      hitRadius: 46,
+      hitRadius: 52,
       label: "掃除",
       fillColor: 0xd8913d,
       strokeColor: 0xffd08a,
@@ -42,26 +48,37 @@ export class ActionControls {
     this.cleanButton = cleanControl.button;
     this.cleanLabel = cleanControl.label;
 
-    const dodgeControl = this.createCircleButton({
+    this.dodgeButton = this.createCircleButton({
       x: dodgeX,
       y: dodgeY,
       radius: 29,
-      hitRadius: 32,
+      hitRadius: 38,
       label: "回避",
       fillColor: 0x4e6b7d,
       strokeColor: 0xa7d2e7,
       labelColor: "#eef8ff",
       fontSize: 15
-    });
-    this.dodgeButton = dodgeControl.button;
+    }).button;
+
+    this.attackButton = this.createCircleButton({
+      x: attackX,
+      y: attackY,
+      radius: 31,
+      hitRadius: 40,
+      label: "攻撃",
+      fillColor: 0x9b4350,
+      strokeColor: 0xffb4a6,
+      labelColor: "#fff2e8",
+      fontSize: 15
+    }).button;
 
     this.pauseButton = this.createRectButton({
       x: pauseX,
       y: pauseY,
       width: 52,
       height: 52,
-      hitWidth: 56,
-      hitHeight: 56,
+      hitWidth: 58,
+      hitHeight: 58,
       label: "II",
       fillColor: 0x1e2430,
       strokeColor: 0xe2b56f,
@@ -75,6 +92,7 @@ export class ActionControls {
       this.cleanHeld = true;
       this.cleanPressed = true;
       this.cleanButton.setScale(0.94);
+      this.cleanButton.setAlpha(1);
     });
 
     this.dodgeButton.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
@@ -84,26 +102,47 @@ export class ActionControls {
       this.dodgeButton.setScale(0.92);
     });
 
+    this.attackButton.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (this.attackPointerId !== null) return;
+      this.attackPointerId = pointer.id;
+      this.attackPressed = true;
+      this.attackButton.setScale(0.92);
+    });
+
+    this.pauseButton.on("pointerup", () => {
+      this.handleReleaseAll();
+      this.pausePressed = true;
+    });
+
     this.handlePointerEnd = (pointer: Phaser.Input.Pointer) => {
       if (pointer.id === this.cleanPointerId) {
         this.cleanPointerId = null;
         this.cleanHeld = false;
         this.cleanButton.setScale(1);
+        this.cleanButton.setAlpha(0.88);
       }
 
       if (pointer.id === this.dodgePointerId) {
         this.dodgePointerId = null;
         this.dodgeButton.setScale(1);
       }
+
+      if (pointer.id === this.attackPointerId) {
+        this.attackPointerId = null;
+        this.attackButton.setScale(1);
+      }
     };
 
     this.handleReleaseAll = () => {
       this.cleanPointerId = null;
       this.dodgePointerId = null;
+      this.attackPointerId = null;
       this.cleanHeld = false;
       this.cleanPressed = false;
       this.cleanButton.setScale(1);
+      this.cleanButton.setAlpha(0.88);
       this.dodgeButton.setScale(1);
+      this.attackButton.setScale(1);
     };
 
     scene.input.on("pointerup", this.handlePointerEnd);
@@ -112,11 +151,6 @@ export class ActionControls {
     scene.game.events.on(Phaser.Core.Events.BLUR, this.handleReleaseAll);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.destroy();
-    });
-
-    this.pauseButton.on("pointerup", () => {
-      this.handleReleaseAll();
-      scene.scene.start("BaseScene");
     });
   }
 
@@ -136,6 +170,18 @@ export class ActionControls {
     return true;
   }
 
+  consumeAttack(): boolean {
+    if (!this.attackPressed) return false;
+    this.attackPressed = false;
+    return true;
+  }
+
+  consumePause(): boolean {
+    if (!this.pausePressed) return false;
+    this.pausePressed = false;
+    return true;
+  }
+
   setPrimaryActionMode(mode: PrimaryActionMode): void {
     if (this.primaryMode === mode) return;
     this.primaryMode = mode;
@@ -143,7 +189,7 @@ export class ActionControls {
     if (mode === "exit") {
       this.cleanButton.setFillStyle(0x4d8f6a, 0.92);
       this.cleanButton.setStrokeStyle(3, 0xc6ffd0, 0.95);
-      this.cleanLabel.setText("出口");
+      this.cleanLabel.setText("帰る");
       this.cleanLabel.setColor("#f8fff0");
       return;
     }

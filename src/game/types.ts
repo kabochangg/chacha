@@ -5,6 +5,7 @@ export type RunResult = {
   retreated: boolean;
   cleaned: number;
   totalDebris: number;
+  cleanScore: number;
   damageTaken: number;
   durationMs: number;
   inventory: Record<ItemId, number>;

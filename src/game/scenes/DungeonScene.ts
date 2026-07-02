@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { type ItemId, getInventoryCount, getInventoryValue } from "../data/items";
+import { ITEMS, type ItemId, getInventoryCount, getInventoryValue } from "../data/items";
 import { getBagCapacity, getCleaningPower } from "../data/upgrades";
 import { loadSave, type SaveData } from "../systems/SaveSystem";
 import type { RunResult } from "../types";
@@ -13,12 +13,16 @@ const PLAYER_SPEED = 170;
 const DODGE_SPEED = 430;
 const DODGE_TIME_MS = 130;
 const EXIT_CLEAN_RATE = 0.8;
+const ATTACK_COOLDOWN_MS = 360;
 
 type DebrisKind = {
   name: string;
   hp: number;
   item: ItemId;
   color: number;
+  width: number;
+  height: number;
+  cleanValue: number;
 };
 
 type DebrisObject = Phaser.GameObjects.Rectangle & {
@@ -27,22 +31,27 @@ type DebrisObject = Phaser.GameObjects.Rectangle & {
   maxDebrisHp: number;
   itemId: ItemId;
   baseAngle: number;
+  cleanValue: number;
 };
 
 type MaterialObject = Phaser.GameObjects.Star & {
   body: Phaser.Physics.Arcade.Body;
   itemId: ItemId;
+  collected: boolean;
 };
 
 type EnemyObject = Phaser.GameObjects.Rectangle & {
   body: Phaser.Physics.Arcade.Body;
   originX: number;
   originY: number;
-  patrolAxis: "x" | "y";
+  phase: number;
+  pattern: "loop" | "wave";
+  hp: number;
+  maxHp: number;
+  dropItem: ItemId;
   visual: Phaser.GameObjects.Container;
   warning: Phaser.GameObjects.Text;
   core: Phaser.GameObjects.Ellipse;
-  shadow: Phaser.GameObjects.Ellipse;
 };
 
 type PlayerVisual = {
@@ -65,11 +74,11 @@ type HudBar = {
 };
 
 const DEBRIS_KINDS: DebrisKind[] = [
-  { name: "小さな瓦礫", hp: 1, item: "stone", color: 0x8a7a61 },
-  { name: "壊れた木箱", hp: 2, item: "wood", color: 0x7d5430 },
-  { name: "魔物の粘液", hp: 2, item: "slime", color: 0x5fae79 },
-  { name: "焦げた床", hp: 3, item: "ash", color: 0x4c4a4d },
-  { name: "壊れた宝箱", hp: 3, item: "metal", color: 0xa67536 }
+  { name: "小石の山", hp: 1, item: "stone", color: 0x8a7a61, width: 28, height: 18, cleanValue: 5 },
+  { name: "粘液の跡", hp: 2, item: "slime", color: 0x5fae79, width: 32, height: 20, cleanValue: 10 },
+  { name: "壊れた木箱", hp: 2, item: "wood", color: 0x7d5430, width: 34, height: 25, cleanValue: 10 },
+  { name: "焦げた灰", hp: 3, item: "ash", color: 0x4c4a4d, width: 38, height: 22, cleanValue: 15 },
+  { name: "壊れた宝箱", hp: 3, item: "metal", color: 0xa67536, width: 40, height: 28, cleanValue: 15 }
 ];
 
 export class DungeonScene extends Phaser.Scene {
@@ -80,6 +89,7 @@ export class DungeonScene extends Phaser.Scene {
   private space!: Phaser.Input.Keyboard.Key;
   private shift!: Phaser.Input.Keyboard.Key;
   private eKey!: Phaser.Input.Keyboard.Key;
+  private jKey!: Phaser.Input.Keyboard.Key;
   private escape!: Phaser.Input.Keyboard.Key;
   private virtualPad!: VirtualPad;
   private controls!: ActionControls;
@@ -94,6 +104,7 @@ export class DungeonScene extends Phaser.Scene {
   private exitGlow!: Phaser.GameObjects.Ellipse;
   private exitLabel!: Phaser.GameObjects.Text;
   private exitArrow!: Phaser.GameObjects.Triangle;
+  private pauseLayer?: Phaser.GameObjects.Container;
   private debris: DebrisObject[] = [];
   private materials!: Phaser.Physics.Arcade.Group;
   private enemies: EnemyObject[] = [];
@@ -105,12 +116,15 @@ export class DungeonScene extends Phaser.Scene {
   private damageTaken = 0;
   private cleaned = 0;
   private totalDebris = 0;
+  private cleanScore = 0;
   private runInventory: Record<ItemId, number> = { stone: 0, wood: 0, slime: 0, ash: 0, metal: 0 };
   private runStartedAt = 0;
   private lastDamageAt = 0;
+  private lastAttackAt = 0;
   private infoLockedUntil = 0;
   private exitAvailable = false;
   private finished = false;
+  private paused = false;
   private cleaningParticles?: Phaser.GameObjects.Particles.ParticleEmitter;
   private audioContext?: AudioContext;
   private save!: SaveData;
@@ -154,11 +168,75 @@ export class DungeonScene extends Phaser.Scene {
     this.space = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.shift = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
     this.eKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.jKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.J);
     this.escape = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
     this.virtualPad = new VirtualPad(this);
     this.controls = new ActionControls(this);
     this.createHud();
+  }
+
+  update(time: number, delta: number): void {
+    if (this.finished) return;
+
+    if (this.paused) {
+      this.player.body.setVelocity(0, 0);
+      if (Phaser.Input.Keyboard.JustDown(this.escape) || this.controls.consumePause()) this.closePauseMenu();
+      return;
+    }
+
+    if (this.controls.consumePause() || Phaser.Input.Keyboard.JustDown(this.escape)) {
+      this.openPauseMenu();
+      return;
+    }
+
+    const input = this.getMoveInput();
+    const dodgeRequested = Phaser.Input.Keyboard.JustDown(this.shift) || this.controls.consumeDodge();
+    if (dodgeRequested && input.lengthSq() > 0 && this.stamina >= 10) {
+      this.stamina -= 10;
+      this.dodgingUntil = time + DODGE_TIME_MS;
+      this.playTone(170, 0.045, "triangle", 0.04);
+    }
+
+    const speed = time < this.dodgingUntil ? DODGE_SPEED : PLAYER_SPEED;
+    this.player.body.setVelocity(input.x * speed, input.y * speed);
+    if (input.lengthSq() > 0.001) this.lastFacing.copy(input);
+
+    this.updatePlayerVisual(time, input);
+    this.updateEnemies(time);
+    this.checkHazards(time);
+
+    const nearExit = this.exitAvailable && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.exitZone.x, this.exitZone.y) < 58;
+    this.controls.setPrimaryActionMode(nearExit ? "exit" : "clean");
+    const primaryPressed = this.controls.consumePrimaryPress();
+    const interactPressed = Phaser.Input.Keyboard.JustDown(this.eKey) || primaryPressed;
+    const cleaningHeld = this.space.isDown || this.controls.isCleaning();
+    const attackRequested = Phaser.Input.Keyboard.JustDown(this.jKey) || this.controls.consumeAttack();
+
+    if (attackRequested) this.handleAttack(time);
+
+    if (nearExit && interactPressed) {
+      this.playTone(520, 0.08, "sine", 0.05);
+      this.finishRun(true);
+      return;
+    }
+
+    if (cleaningHeld && !nearExit && this.stamina > 0) {
+      this.handleCleaning(delta);
+    } else {
+      this.decayDebrisProgress(delta);
+      this.cleaningRing.clear();
+      if (cleaningHeld && this.stamina <= 0) this.showInfo("スタミナ切れ。少し待とう。", 500);
+      this.stamina = Math.min(100, this.stamina + delta * 0.018);
+    }
+
+    if (this.hp <= 0) {
+      this.finishRun(false, true);
+      return;
+    }
+
+    this.revealExitIfReady();
+    this.refreshHud(nearExit);
   }
 
   private resetRunState(): void {
@@ -172,75 +250,23 @@ export class DungeonScene extends Phaser.Scene {
     this.damageTaken = 0;
     this.cleaned = 0;
     this.totalDebris = 0;
+    this.cleanScore = 0;
     this.runInventory = { stone: 0, wood: 0, slime: 0, ash: 0, metal: 0 };
     this.runStartedAt = 0;
     this.lastDamageAt = 0;
+    this.lastAttackAt = 0;
     this.infoLockedUntil = 0;
     this.exitAvailable = false;
     this.finished = false;
+    this.paused = false;
+    this.pauseLayer = undefined;
     this.cleaningParticles = undefined;
   }
 
-  update(time: number, delta: number): void {
-    if (this.finished) return;
-
-    const input = this.getMoveInput();
-    const dodgeRequested = Phaser.Input.Keyboard.JustDown(this.shift) || this.controls.consumeDodge();
-
-    if (dodgeRequested && input.lengthSq() > 0 && this.stamina >= 10) {
-      this.stamina -= 10;
-      this.dodgingUntil = time + DODGE_TIME_MS;
-      this.playTone(170, 0.045, "triangle", 0.04);
-    }
-
-    const speed = time < this.dodgingUntil ? DODGE_SPEED : PLAYER_SPEED;
-    this.player.body.setVelocity(input.x * speed, input.y * speed);
-
-    if (input.lengthSq() > 0.001) this.lastFacing.copy(input);
-    this.updatePlayerVisual(time, input);
-
-    this.updateEnemies(time);
-    this.checkHazards(time);
-
-    const nearExit = this.exitAvailable && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.exitZone.x, this.exitZone.y) < 54;
-    this.controls.setPrimaryActionMode(nearExit ? "exit" : "clean");
-    const cleanPressedThisFrame = this.controls.consumePrimaryPress();
-    const interactPressed = Phaser.Input.Keyboard.JustDown(this.eKey) || cleanPressedThisFrame;
-    const cleaningHeld = this.space.isDown || this.controls.isCleaning();
-    if (nearExit && interactPressed) {
-      this.playTone(520, 0.08, "sine", 0.05);
-      this.finishRun(true);
-      return;
-    }
-
-    if (cleaningHeld && !nearExit && this.stamina > 0) {
-      this.handleCleaning(delta);
-    } else {
-      this.cleaningRing.clear();
-      if (cleaningHeld && this.stamina <= 0) this.showInfo("スタミナ切れ。少し待とう。", 500);
-      this.stamina = Math.min(100, this.stamina + delta * 0.018);
-    }
-
-    if (Phaser.Input.Keyboard.JustDown(this.escape)) {
-      this.finishRun(false, true);
-      return;
-    }
-
-    if (this.hp <= 0) {
-      this.finishRun(false, true);
-      return;
-    }
-
-    this.revealExitIfReady();
-    this.refreshHud(nearExit);
-  }
-
   private createDungeon(walls: Phaser.Physics.Arcade.StaticGroup): void {
-    const floorColors = [0x24252c, 0x2a2a31];
-
     for (let y = 0; y < MAP_HEIGHT; y += 1) {
       for (let x = 0; x < MAP_WIDTH; x += 1) {
-        const color = floorColors[(x + y) % floorColors.length];
+        const color = (x + y) % 2 === 0 ? 0x24252c : 0x2a2a31;
         this.add.rectangle(x * TILE + TILE / 2, y * TILE + TILE / 2, TILE - 2, TILE - 2, color);
       }
     }
@@ -272,32 +298,9 @@ export class DungeonScene extends Phaser.Scene {
 
     this.addTrap(7, 8);
     this.addTrap(13, 5);
-    this.addEnemy(6, 9, "x");
-    this.addEnemy(13, 10, "y");
-
-    this.exitZone = this.add.rectangle((MAP_WIDTH - 2) * TILE + TILE / 2, (MAP_HEIGHT - 3) * TILE + TILE / 2, 38, 48, 0x4d8f6a)
-      .setStrokeStyle(3, 0xa7e8b3, 0.85);
-    this.exitGlow = this.add.ellipse(this.exitZone.x, this.exitZone.y + 2, 58, 66, 0x7ce59a, 0.18)
-      .setStrokeStyle(2, 0xc6ffd0, 0.45);
-    this.exitArrow = this.add.triangle(this.exitZone.x, this.exitZone.y - 48, 0, 0, 34, 0, 17, 24, 0xfff0a8, 0.95)
-      .setStrokeStyle(2, 0x4c3819, 0.8);
-    this.exitLabel = this.add.text(this.exitZone.x, this.exitZone.y - 72, "出口", {
-      fontFamily: "sans-serif",
-      fontSize: "16px",
-      color: "#f9ffd8",
-      fontStyle: "700",
-      backgroundColor: "#1c3b26",
-      padding: { x: 7, y: 3 }
-    }).setOrigin(0.5);
-    this.tweens.add({
-      targets: [this.exitArrow, this.exitLabel],
-      y: "-=5",
-      duration: 560,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut"
-    });
-    this.setExitVisible(false);
+    this.addEnemy(6, 9, "loop", "slime");
+    this.addEnemy(13, 10, "wave", "ash");
+    this.createExit();
   }
 
   private addWall(walls: Phaser.Physics.Arcade.StaticGroup, tileX: number, tileY: number): void {
@@ -310,16 +313,17 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private addDebris(tileX: number, tileY: number, kind: DebrisKind): void {
-    const object = this.add.rectangle(tileX * TILE + TILE / 2, tileY * TILE + TILE / 2, 28, 22, kind.color, 1)
+    const object = this.add.rectangle(tileX * TILE + TILE / 2, tileY * TILE + TILE / 2, kind.width, kind.height, kind.color, 1)
       .setStrokeStyle(2, 0xd3aa72, 0.72)
       .setAngle(Phaser.Math.Between(-12, 12)) as DebrisObject;
     this.physics.add.existing(object);
     object.body.setImmovable(true);
-    object.body.setSize(30, 24);
+    object.body.setSize(kind.width + 4, kind.height + 4);
     object.debrisHp = kind.hp;
     object.maxDebrisHp = kind.hp;
     object.itemId = kind.item;
     object.baseAngle = object.angle;
+    object.cleanValue = kind.cleanValue;
     object.setData("name", kind.name);
     this.debris.push(object);
   }
@@ -335,30 +339,16 @@ export class DungeonScene extends Phaser.Scene {
       color: "#fff2c2",
       fontStyle: "900"
     }).setOrigin(0.5);
-    this.tweens.add({
-      targets: [trap, mark],
-      alpha: 0.48,
-      duration: 420,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut"
-    });
+    this.tweens.add({ targets: [trap, mark], alpha: 0.48, duration: 420, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     this.traps.push({ body: trap, mark });
   }
 
-  private addEnemy(tileX: number, tileY: number, patrolAxis: "x" | "y"): void {
+  private addEnemy(tileX: number, tileY: number, pattern: EnemyObject["pattern"], dropItem: ItemId): void {
     const x = tileX * TILE + TILE / 2;
     const y = tileY * TILE + TILE / 2;
     const shadow = this.add.ellipse(0, 14, 42, 16, 0x190b0c, 0.38);
-    const glow = this.add.ellipse(0, 1, 39, 31, 0xff7b74, 0.24)
-      .setStrokeStyle(2, 0xffe0a8, 0.65);
-    const core = this.add.ellipse(0, 0, 33, 27, 0x9b335f, 0.96)
-      .setStrokeStyle(3, 0xdc5c52, 0.92);
-    const cap = this.add.ellipse(-4, -5, 19, 10, 0xc65172, 0.78);
-    const bubbleA = this.add.ellipse(8, 3, 8, 7, 0xff8a92, 0.56);
-    const bubbleB = this.add.ellipse(-10, 5, 6, 5, 0x6f2449, 0.55);
-    const eyeA = this.add.ellipse(-6, -3, 4, 5, 0xfff2c2, 0.95);
-    const eyeB = this.add.ellipse(6, -3, 4, 5, 0xfff2c2, 0.95);
+    const glow = this.add.ellipse(0, 1, 39, 31, 0xff7b74, 0.24).setStrokeStyle(2, 0xffe0a8, 0.65);
+    const core = this.add.ellipse(0, 0, 33, 27, 0x9b335f, 0.96).setStrokeStyle(3, 0xdc5c52, 0.92);
     const warning = this.add.text(0, -21, "!", {
       fontFamily: "sans-serif",
       fontSize: "20px",
@@ -367,21 +357,41 @@ export class DungeonScene extends Phaser.Scene {
       stroke: "#5d171d",
       strokeThickness: 3
     }).setOrigin(0.5);
-    const visual = this.add.container(x, y, [shadow, glow, core, cap, bubbleA, bubbleB, eyeA, eyeB, warning])
-      .setDepth(24);
-
+    const visual = this.add.container(x, y, [shadow, glow, core, warning]).setDepth(24);
     const enemy = this.add.rectangle(x, y, 32, 28, 0xdc5c52, 0) as EnemyObject;
     this.physics.add.existing(enemy);
     enemy.body.setImmovable(true);
-    enemy.body.setSize(32, 28);
+    enemy.body.setSize(34, 30);
     enemy.originX = enemy.x;
     enemy.originY = enemy.y;
-    enemy.patrolAxis = patrolAxis;
+    enemy.phase = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    enemy.pattern = pattern;
+    enemy.hp = 2;
+    enemy.maxHp = 2;
+    enemy.dropItem = dropItem;
     enemy.visual = visual;
     enemy.warning = warning;
     enemy.core = core;
-    enemy.shadow = shadow;
     this.enemies.push(enemy);
+  }
+
+  private createExit(): void {
+    this.exitZone = this.add.rectangle((MAP_WIDTH - 2) * TILE + TILE / 2, (MAP_HEIGHT - 3) * TILE + TILE / 2, 40, 50, 0x4d8f6a)
+      .setStrokeStyle(3, 0xa7e8b3, 0.85);
+    this.exitGlow = this.add.ellipse(this.exitZone.x, this.exitZone.y + 2, 62, 70, 0x7ce59a, 0.2)
+      .setStrokeStyle(2, 0xc6ffd0, 0.45);
+    this.exitArrow = this.add.triangle(this.exitZone.x, this.exitZone.y - 48, 0, 0, 34, 0, 17, 24, 0xfff0a8, 0.95)
+      .setStrokeStyle(2, 0x4c3819, 0.8);
+    this.exitLabel = this.add.text(this.exitZone.x, this.exitZone.y - 72, "出口", {
+      fontFamily: "sans-serif",
+      fontSize: "16px",
+      color: "#f9ffd8",
+      fontStyle: "700",
+      backgroundColor: "#1c3b26",
+      padding: { x: 7, y: 3 }
+    }).setOrigin(0.5);
+    this.tweens.add({ targets: [this.exitArrow, this.exitLabel], y: "-=5", duration: 560, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    this.setExitVisible(false);
   }
 
   private createPlayer(): void {
@@ -393,60 +403,34 @@ export class DungeonScene extends Phaser.Scene {
     this.player.body.setSize(24, 28);
     this.player.body.setCollideWorldBounds(true);
     this.playerVisual = this.createCleanerVisual(x, y);
-
     this.cleaningRing = this.add.graphics().setDepth(40);
   }
 
   private createCleanerVisual(x: number, y: number): PlayerVisual {
+    const broomLevel = this.save?.player.broomLevel ?? 1;
+    const bagLevel = this.save?.player.bagLevel ?? 1;
     const shadow = this.add.ellipse(0, 17, 25, 9, 0x190b0c, 0.38);
-    const bag = this.add.ellipse(-9, 2, 16, 24, 0x7c6548, 1)
+    const bag = this.add.ellipse(-9, 2, 16 + bagLevel * 1.5, 24 + bagLevel * 1.2, bagLevel >= 3 ? 0x8f6f4a : 0x7c6548, 1)
       .setStrokeStyle(2, 0x3b2717, 0.92);
-    const body = this.add.rectangle(0, 5, 17, 21, 0x607789, 1)
-      .setStrokeStyle(2, 0x26313b, 1);
-    const apron = this.add.triangle(0, 9, 0, 0, 14, 0, 7, 15, 0x8b5f35, 1)
-      .setStrokeStyle(1, 0x3b2717, 0.9);
-    const face = this.add.ellipse(0, -6, 15, 13, 0xd8b891, 1)
-      .setStrokeStyle(1, 0x3b2717, 0.85);
-    const mask = this.add.rectangle(0, -4, 13, 6, 0xe6ddd2, 1)
-      .setStrokeStyle(1, 0x6d6257, 0.8);
+    const body = this.add.rectangle(0, 5, 17, 21, 0x607789, 1).setStrokeStyle(2, 0x26313b, 1);
+    const apron = this.add.triangle(0, 9, 0, 0, 14, 0, 7, 15, 0x8b5f35, 1).setStrokeStyle(1, 0x3b2717, 0.9);
+    const face = this.add.ellipse(0, -6, 15, 13, 0xd8b891, 1).setStrokeStyle(1, 0x3b2717, 0.85);
+    const mask = this.add.rectangle(0, -4, 13, 6, 0xe6ddd2, 1).setStrokeStyle(1, 0x6d6257, 0.8);
     const eyeA = this.add.ellipse(-4, -9, 2.5, 3.5, 0x171722, 1);
     const eyeB = this.add.ellipse(4, -9, 2.5, 3.5, 0x171722, 1);
-    const hat = this.add.ellipse(0, -15, 24, 12, 0xd6a34d, 1)
-      .setStrokeStyle(2, 0x6e4921, 1);
-    const hatTop = this.add.ellipse(0, -20, 16, 10, 0xc88d3b, 1)
-      .setStrokeStyle(1, 0x6e4921, 0.85);
-    const broom = this.createBroomVisual();
-
-    const root = this.add.container(x, y, [
-      shadow,
-      bag,
-      broom,
-      body,
-      apron,
-      face,
-      mask,
-      eyeA,
-      eyeB,
-      hat,
-      hatTop
-    ]).setDepth(28);
-
-    return {
-      root,
-      hat,
-      bag,
-      broom,
-      parts: [bag, broom, body, apron, face, mask, eyeA, eyeB, hat, hatTop]
-    };
+    const hat = this.add.ellipse(0, -15, 24, 12, broomLevel >= 3 ? 0xe2b56f : 0xd6a34d, 1).setStrokeStyle(2, 0x6e4921, 1);
+    const hatTop = this.add.ellipse(0, -20, 16, 10, 0xc88d3b, 1).setStrokeStyle(1, 0x6e4921, 0.85);
+    const broom = this.createBroomVisual(broomLevel);
+    const root = this.add.container(x, y, [shadow, bag, broom, body, apron, face, mask, eyeA, eyeB, hat, hatTop]).setDepth(28);
+    return { root, hat, bag, broom, parts: [bag, broom, body, apron, face, mask, eyeA, eyeB, hat, hatTop] };
   }
 
-  private createBroomVisual(): Phaser.GameObjects.Container {
-    const handle = this.add.rectangle(0, 4, 4, 31, 0x8a5a2f, 1)
+  private createBroomVisual(level: number): Phaser.GameObjects.Container {
+    const handle = this.add.rectangle(0, 4, 4, 31 + level * 2, level >= 3 ? 0xa36d35 : 0x8a5a2f, 1)
       .setStrokeStyle(1, 0x3b2717, 0.85)
       .setOrigin(0.5, 0.2);
-    const band = this.add.rectangle(0, 22, 9, 4, 0x6aa2cf, 1)
-      .setStrokeStyle(1, 0x26313b, 0.85);
-    const bristles = this.add.triangle(0, 33, 0, 0, 18, 0, 9, 17, 0xc99b5d, 1)
+    const band = this.add.rectangle(0, 22, 9 + level, 4, 0x6aa2cf, 1).setStrokeStyle(1, 0x26313b, 0.85);
+    const bristles = this.add.triangle(0, 33, 0, 0, 18 + level * 2, 0, 9 + level, 17, 0xc99b5d, 1)
       .setStrokeStyle(1, 0x5a3d22, 0.9)
       .setOrigin(0.5, 0.3);
     return this.add.container(9, 4, [handle, band, bristles]);
@@ -459,7 +443,6 @@ export class DungeonScene extends Phaser.Scene {
       .setStrokeStyle(2, 0xe2b56f, 0.36)
       .setScrollFactor(0)
       .setDepth(90);
-
     this.hudText = this.add.text(panelX, 12, "", {
       fontFamily: "sans-serif",
       fontSize: "15px",
@@ -470,8 +453,8 @@ export class DungeonScene extends Phaser.Scene {
 
     this.hpBar = this.createHudBar(23, 39, 154, "HP", 0xd95a4e);
     this.staminaBar = this.createHudBar(23, 61, 154, "STM", 0x68b36f);
-    this.bagBar = this.createHudBar(208, 39, 154, "素材", 0xd8a54a);
-    this.cleanBar = this.createHudBar(208, 61, 154, "清掃", 0x6aa2cf);
+    this.bagBar = this.createHudBar(Math.max(188, width - 178), 39, 154, "素材", 0xd8a54a);
+    this.cleanBar = this.createHudBar(Math.max(188, width - 178), 61, 154, "清掃", 0x6aa2cf);
 
     this.infoText = this.add.text(panelX, 86, "", {
       fontFamily: "sans-serif",
@@ -480,47 +463,36 @@ export class DungeonScene extends Phaser.Scene {
       align: "center",
       fontStyle: "700",
       backgroundColor: "#171722cc",
-      padding: { x: 8, y: 3 }
+      padding: { x: 8, y: 3 },
+      wordWrap: { width: width - 70 }
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(91);
   }
 
-  private getCleanRate(): number {
-    return this.totalDebris > 0 ? this.cleaned / this.totalDebris : 0;
-  }
-
-  private setExitVisible(visible: boolean): void {
-    this.exitZone.setVisible(visible);
-    this.exitGlow.setVisible(visible);
-    this.exitArrow.setVisible(visible);
-    this.exitLabel.setVisible(visible);
-  }
-
-  private revealExitIfReady(): void {
-    if (this.exitAvailable || this.getCleanRate() < EXIT_CLEAN_RATE) return;
-
-    this.exitAvailable = true;
-    this.setExitVisible(true);
-    this.exitZone.setScale(0.4);
-    this.exitGlow.setScale(0.4);
-    this.exitArrow.setScale(0.4);
-    this.exitLabel.setScale(0.4);
-    this.tweens.add({
-      targets: [this.exitZone, this.exitGlow, this.exitArrow, this.exitLabel],
-      scale: 1,
-      duration: 240,
-      ease: "Back.easeOut"
-    });
-    this.showInfo("清掃率80%達成。出口が開いた。", 1200);
-    this.playTone(700, 0.12, "sine", 0.06);
+  private createHudBar(x: number, y: number, width: number, label: string, color: number): HudBar {
+    this.add.rectangle(x, y, width, 10, 0x0f1118, 0.92)
+      .setOrigin(0, 0.5)
+      .setStrokeStyle(1, 0xf6d39b, 0.25)
+      .setScrollFactor(0)
+      .setDepth(91);
+    const fill = this.add.rectangle(x + 1, y, width - 2, 8, color, 1)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(92);
+    const text = this.add.text(x + 5, y - 7, label, {
+      fontFamily: "sans-serif",
+      fontSize: "12px",
+      color: "#fff4df",
+      fontStyle: "700"
+    }).setOrigin(0, 0).setScrollFactor(0).setDepth(93);
+    return { fill, label: text, width: width - 2 };
   }
 
   private handleCleaning(delta: number): void {
     const target = this.findTargetDebris();
     this.stamina = Math.max(0, this.stamina - delta * 0.024);
-
     if (!target) {
       this.drawCleaningRing(this.player.x + this.lastFacing.x * 34, this.player.y + this.lastFacing.y * 34, 0);
-      this.showInfo("近くの残骸に向いて長押し", 250);
+      this.showInfo("残骸に近づいて長押し掃除", 250);
       return;
     }
 
@@ -537,40 +509,131 @@ export class DungeonScene extends Phaser.Scene {
     }
 
     if (target.debrisHp <= 0) {
-      this.cleaned += 1;
-      const x = target.x;
-      const y = target.y;
-      this.spawnMaterial(target.x, target.y, target.itemId);
-      Phaser.Utils.Array.Remove(this.debris, target);
-      target.body.enable = false;
-      this.emitDust(x, y, 1, 12);
-      this.playTone(620, 0.07, "sine", 0.06);
-      this.tweens.add({
-        targets: target,
-        alpha: 0,
-        scaleX: 0.2,
-        scaleY: 0.2,
-        angle: target.baseAngle + 35,
-        duration: 160,
-        ease: "Back.easeIn",
-        onComplete: () => target.destroy()
-      });
-      this.showInfo(`${target.getData("name")} 完了。素材が出た。`, 700);
+      this.completeDebris(target);
     }
+  }
+
+  private completeDebris(target: DebrisObject): void {
+    this.cleaned += 1;
+    this.cleanScore = Math.min(100, this.cleanScore + target.cleanValue);
+    const x = target.x;
+    const y = target.y;
+    this.spawnMaterial(target.x, target.y, target.itemId);
+    Phaser.Utils.Array.Remove(this.debris, target);
+    target.body.enable = false;
+    this.emitDust(x, y, 1, 12);
+    this.playTone(620, 0.07, "sine", 0.06);
+    this.tweens.add({
+      targets: target,
+      alpha: 0,
+      scaleX: 0.2,
+      scaleY: 0.2,
+      angle: target.baseAngle + 35,
+      duration: 160,
+      ease: "Back.easeIn",
+      onComplete: () => target.destroy()
+    });
+    this.showInfo(`${target.getData("name")} 完了 +${target.cleanValue}%`, 700);
+  }
+
+  private decayDebrisProgress(delta: number): void {
+    for (const object of this.debris) {
+      if (object.debrisHp >= object.maxDebrisHp) continue;
+      object.debrisHp = Math.min(object.maxDebrisHp, object.debrisHp + object.maxDebrisHp * (delta / 2400));
+      const progress = Phaser.Math.Clamp(1 - object.debrisHp / object.maxDebrisHp, 0, 1);
+      object.setScale(1 - progress * 0.18);
+      object.setAlpha(1 - progress * 0.18);
+      object.setAngle(object.baseAngle);
+    }
+  }
+
+  private handleAttack(time: number): void {
+    if (time - this.lastAttackAt < ATTACK_COOLDOWN_MS || this.stamina < 6) return;
+    this.lastAttackAt = time;
+    this.stamina -= 6;
+    this.drawAttackArc();
+
+    const hit = this.findAttackTarget();
+    if (!hit) {
+      this.showInfo("空振り", 260);
+      this.playTone(180, 0.04, "triangle", 0.035);
+      return;
+    }
+
+    hit.hp -= 1;
+    this.cameras.main.shake(70, 0.004);
+    hit.visual.setScale(1.16);
+    this.tweens.add({ targets: hit.visual, scale: 1, duration: 110, ease: "Back.easeOut" });
+    this.showInfo(`モンスターに攻撃 ${Math.max(0, hit.hp)}/${hit.maxHp}`, 500);
+    this.playTone(430, 0.05, "square", 0.045);
+
+    if (hit.hp <= 0) this.defeatEnemy(hit);
+  }
+
+  private findAttackTarget(): EnemyObject | undefined {
+    const attackPoint = new Phaser.Math.Vector2(
+      this.player.x + this.lastFacing.x * 46,
+      this.player.y + this.lastFacing.y * 46
+    );
+    let best: EnemyObject | undefined;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const enemy of this.enemies) {
+      const distance = Phaser.Math.Distance.Between(attackPoint.x, attackPoint.y, enemy.x, enemy.y);
+      const toEnemy = new Phaser.Math.Vector2(enemy.x - this.player.x, enemy.y - this.player.y).normalize();
+      const facingScore = toEnemy.dot(this.lastFacing);
+      if (distance > 58 || facingScore < -0.1) continue;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = enemy;
+      }
+    }
+    return best;
+  }
+
+  private defeatEnemy(enemy: EnemyObject): void {
+    Phaser.Utils.Array.Remove(this.enemies, enemy);
+    enemy.body.enable = false;
+    this.spawnMaterial(enemy.x, enemy.y, enemy.dropItem);
+    this.emitDust(enemy.x, enemy.y, 1, 10);
+    this.showInfo("モンスター撃退。素材が出た!", 800);
+    this.playTone(720, 0.08, "sine", 0.06);
+    this.tweens.add({
+      targets: enemy.visual,
+      alpha: 0,
+      scale: 0.25,
+      angle: 35,
+      duration: 170,
+      ease: "Back.easeIn",
+      onComplete: () => enemy.visual.destroy()
+    });
+    enemy.destroy();
+  }
+
+  private drawAttackArc(): void {
+    const x = this.player.x + this.lastFacing.x * 38;
+    const y = this.player.y + this.lastFacing.y * 38;
+    const arc = this.add.graphics().setDepth(42);
+    arc.lineStyle(7, 0xffd58f, 0.9);
+    arc.beginPath();
+    arc.arc(x, y, 28, this.lastFacing.angle() - 0.85, this.lastFacing.angle() + 0.85, false);
+    arc.strokePath();
+    this.tweens.add({
+      targets: arc,
+      alpha: 0,
+      duration: 150,
+      onComplete: () => arc.destroy()
+    });
   }
 
   private findTargetDebris(): DebrisObject | undefined {
     let best: DebrisObject | undefined;
     let bestScore = Number.POSITIVE_INFINITY;
-
     for (const object of this.debris) {
       const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, object.x, object.y);
       if (distance > 68) continue;
-
       const toObject = new Phaser.Math.Vector2(object.x - this.player.x, object.y - this.player.y).normalize();
       const dot = toObject.dot(this.lastFacing);
       if (distance > 44 && dot < 0.12) continue;
-
       const nearBonus = distance <= 44 ? 32 : 0;
       const facingBonus = Math.max(0, dot) * 34;
       const score = distance - nearBonus - facingBonus;
@@ -579,35 +642,7 @@ export class DungeonScene extends Phaser.Scene {
         best = object;
       }
     }
-
     return best;
-  }
-
-  private createHudBar(x: number, y: number, width: number, label: string, color: number): HudBar {
-    this.add.rectangle(x, y, width, 10, 0x0f1118, 0.92)
-      .setOrigin(0, 0.5)
-      .setStrokeStyle(1, 0xf6d39b, 0.25)
-      .setScrollFactor(0)
-      .setDepth(91);
-
-    const fill = this.add.rectangle(x + 1, y, width - 2, 8, color, 1)
-      .setOrigin(0, 0.5)
-      .setScrollFactor(0)
-      .setDepth(92);
-
-    const text = this.add.text(x + 5, y - 7, label, {
-      fontFamily: "sans-serif",
-      fontSize: "12px",
-      color: "#fff4df",
-      fontStyle: "700"
-    }).setOrigin(0, 0).setScrollFactor(0).setDepth(93);
-
-    return { fill, label: text, width: width - 2 };
-  }
-
-  private updateHudBar(bar: HudBar, ratio: number, label: string): void {
-    bar.fill.displayWidth = Phaser.Math.Clamp(ratio, 0, 1) * bar.width;
-    bar.label.setText(label);
   }
 
   private drawCleaningRing(x: number, y: number, progress: number): void {
@@ -639,7 +674,6 @@ export class DungeonScene extends Phaser.Scene {
       dust.generateTexture("dust-speck", 8, 8);
       dust.destroy();
     }
-
     this.cleaningParticles = this.add.particles(0, 0, "dust-speck", {
       lifespan: 240,
       speed: { min: 18, max: 58 },
@@ -652,13 +686,268 @@ export class DungeonScene extends Phaser.Scene {
 
   private emitDust(x: number, y: number, progress: number, count = 2): void {
     if (!this.cleaningParticles) return;
-    const amount = Math.max(1, Math.round(count + progress * 3));
-    this.cleaningParticles.explode(amount, x, y);
+    this.cleaningParticles.explode(Math.max(1, Math.round(count + progress * 3)), x, y);
+  }
+
+  private spawnMaterial(x: number, y: number, itemId: ItemId): void {
+    const material = this.add.star(x, y, 5, 6, 12, 0xf2d49b, 1).setStrokeStyle(1, 0x3b2717, 0.7) as MaterialObject;
+    this.physics.add.existing(material);
+    material.itemId = itemId;
+    material.collected = false;
+    this.materials.add(material);
+    material.setScale(0.25);
+    this.tweens.add({ targets: material, scale: 1, duration: 120, ease: "Back.easeOut" });
+    this.tweens.add({
+      targets: material,
+      y: y - 10,
+      duration: 140,
+      ease: "Back.easeOut",
+      yoyo: true,
+      hold: 30,
+      onComplete: () => {
+        if (material.active) material.setY(y);
+      }
+    });
+  }
+
+  private collectMaterial(material: MaterialObject): void {
+    if (material.collected) return;
+    const capacity = getBagCapacity(this.save.player.bagLevel);
+    if (getInventoryCount(this.runInventory) >= capacity) {
+      this.showInfo("バッグがいっぱい。出口へ戻ろう。", 900);
+      this.playTone(120, 0.08, "square", 0.035);
+      return;
+    }
+
+    material.collected = true;
+    material.body.enable = false;
+    this.runInventory[material.itemId] += 1;
+    this.playTone(760, 0.055, "triangle", 0.045);
+    this.showInfo(`${ITEMS[material.itemId].name}を回収`, 420);
+    this.tweens.add({
+      targets: material,
+      x: this.player.x,
+      y: this.player.y,
+      scale: 0,
+      duration: 120,
+      ease: "Sine.easeIn",
+      onComplete: () => material.destroy()
+    });
+  }
+
+  private updateEnemies(time: number): void {
+    this.enemies = this.enemies.filter((enemy) => enemy.active && enemy.body);
+    for (const enemy of this.enemies) {
+      const t = time / 1000;
+      const phase = enemy.phase;
+      const xOffset = enemy.pattern === "loop"
+        ? Math.sin(t * 1.1 + phase) * 62
+        : Math.sin(t * 0.9 + phase) * 84;
+      const yOffset = enemy.pattern === "loop"
+        ? Math.cos(t * 1.35 + phase) * 44
+        : Math.sin(t * 1.8 + phase * 0.7) * 52;
+      enemy.setPosition(enemy.originX + xOffset, enemy.originY + yOffset);
+      enemy.visual.setPosition(enemy.x, enemy.y);
+      const wobble = Math.sin(time / 150 + phase);
+      enemy.core.setScale(1 + wobble * 0.055, 1 - wobble * 0.045);
+      enemy.warning.setScale(1 + Math.max(0, wobble) * 0.12);
+      enemy.visual.setAngle(wobble * 2);
+      enemy.body.updateFromGameObject();
+    }
+  }
+
+  private updatePlayerVisual(time: number, input: Phaser.Math.Vector2): void {
+    const moving = input.lengthSq() > 0.001;
+    const bob = moving ? Math.sin(time / 115) * 1.6 : Math.sin(time / 420) * 0.45;
+    const sway = moving ? Math.sin(time / 130) : 0;
+    const facing = this.lastFacing;
+    this.playerVisual.root.setPosition(this.player.x, this.player.y + bob);
+    this.playerVisual.hat.setY(-15 + sway * 0.9);
+    this.playerVisual.bag.setPosition(-9 - facing.x * 2.2, 2 - facing.y * 1.4 - sway * 0.7);
+    this.playerVisual.broom.setPosition(facing.x * 10, 4 + facing.y * 6);
+    this.playerVisual.broom.setRotation(facing.angle() - Math.PI / 2 + sway * 0.035);
+  }
+
+  private checkHazards(time: number): void {
+    if (time - this.lastDamageAt < 650 || time < this.dodgingUntil) return;
+    const enemyHit = this.enemies.some((enemy) => Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y) < 34);
+    const trapHit = this.traps.some((trap) => Phaser.Math.Distance.Between(this.player.x, this.player.y, trap.body.x, trap.body.y) < 34);
+    if (!enemyHit && !trapHit) return;
+    const damage = enemyHit ? 12 : 8;
+    this.hp = Math.max(0, this.hp - damage);
+    this.damageTaken += damage;
+    this.lastDamageAt = time;
+    this.cameras.main.shake(110, 0.008);
+    this.flashPlayerVisual();
+    this.showInfo(enemyHit ? `モンスターに接触: ${damage}ダメージ` : `危険な床: ${damage}ダメージ`, 820);
+    this.playTone(95, 0.09, "sawtooth", 0.045);
+  }
+
+  private flashPlayerVisual(): void {
+    this.tweens.add({
+      targets: this.playerVisual.parts,
+      alpha: 0.36,
+      duration: 55,
+      yoyo: true,
+      repeat: 1,
+      ease: "Sine.easeInOut",
+      onComplete: () => {
+        for (const part of this.playerVisual.parts) {
+          if ("setAlpha" in part && typeof part.setAlpha === "function") part.setAlpha(1);
+        }
+      }
+    });
+  }
+
+  private openPauseMenu(): void {
+    const { width, height } = this.scale;
+    this.paused = true;
+    this.player.body.setVelocity(0, 0);
+    const inventoryText = this.formatInventory(this.runInventory);
+    const cleanRate = Math.floor(this.getCleanRate() * 100);
+    const capacity = getBagCapacity(this.save.player.bagLevel);
+    const materialCount = getInventoryCount(this.runInventory);
+    const panel = this.add.container(width / 2, height / 2).setScrollFactor(0).setDepth(160);
+    const bg = this.add.rectangle(0, 0, width - 44, 360, 0x171722, 0.94).setStrokeStyle(2, 0xe2b56f, 0.8);
+    const title = this.add.text(0, -144, "一時停止", {
+      fontFamily: "sans-serif",
+      fontSize: "24px",
+      color: "#f8e7c7",
+      fontStyle: "700"
+    }).setOrigin(0.5);
+    const text = this.add.text(0, -82,
+      `HP ${Math.ceil(this.hp)} / 清掃 ${cleanRate}%\n` +
+      `素材 ${materialCount}/${capacity}\n` +
+      `${inventoryText}\n` +
+      `所持金 ${this.save.player.money}G`,
+      {
+        fontFamily: "sans-serif",
+        fontSize: "16px",
+        color: "#f3efe8",
+        align: "center",
+        lineSpacing: 8,
+        wordWrap: { width: width - 86 }
+      }
+    ).setOrigin(0.5, 0);
+    const resume = this.createMenuButton(0, 86, "再開", 0xd8913d, () => this.closePauseMenu());
+    const retreat = this.createMenuButton(0, 148, "拠点へ戻る", 0x4e6b7d, () => {
+      this.closePauseMenu();
+      this.finishRun(false, true);
+    });
+    panel.add([bg, title, text, resume, retreat]);
+    this.pauseLayer = panel;
+  }
+
+  private createMenuButton(x: number, y: number, label: string, color: number, onClick: () => void): Phaser.GameObjects.Container {
+    const button = this.add.rectangle(0, 0, 220, 48, color, 1).setStrokeStyle(2, 0xffd08a, 0.75)
+      .setInteractive({ useHandCursor: true });
+    const text = this.add.text(0, 0, label, {
+      fontFamily: "sans-serif",
+      fontSize: "18px",
+      color: "#fff4df",
+      fontStyle: "700"
+    }).setOrigin(0.5);
+    const container = this.add.container(x, y, [button, text]);
+    button.on("pointerdown", () => container.setScale(0.98));
+    button.on("pointerout", () => container.setScale(1));
+    button.on("pointerup", () => {
+      container.setScale(1);
+      onClick();
+    });
+    return container;
+  }
+
+  private closePauseMenu(): void {
+    this.paused = false;
+    this.pauseLayer?.destroy();
+    this.pauseLayer = undefined;
+  }
+
+  private revealExitIfReady(): void {
+    if (this.exitAvailable || this.getCleanRate() < EXIT_CLEAN_RATE) return;
+    this.exitAvailable = true;
+    this.setExitVisible(true);
+    this.exitZone.setScale(0.4);
+    this.exitGlow.setScale(0.4);
+    this.exitArrow.setScale(0.4);
+    this.exitLabel.setScale(0.4);
+    this.tweens.add({ targets: [this.exitZone, this.exitGlow, this.exitArrow, this.exitLabel], scale: 1, duration: 240, ease: "Back.easeOut" });
+    this.showInfo("清掃率80%達成。出口が開きました。", 1200);
+    this.playTone(700, 0.12, "sine", 0.06);
+  }
+
+  private refreshHud(nearExit: boolean): void {
+    const inventoryCount = getInventoryCount(this.runInventory);
+    const capacity = getBagCapacity(this.save.player.bagLevel);
+    const cleanRate = Math.floor(this.getCleanRate() * 100);
+    this.hudText.setText("はじまりの地下道");
+    this.updateHudBar(this.hpBar, this.hp / 100, `HP ${Math.ceil(this.hp)}`);
+    this.updateHudBar(this.staminaBar, this.stamina / 100, `STM ${Math.ceil(this.stamina)}`);
+    this.updateHudBar(this.bagBar, inventoryCount / capacity, `素材 ${inventoryCount}/${capacity}`);
+    this.updateHudBar(this.cleanBar, cleanRate / 100, `清掃 ${cleanRate}%`);
+
+    if (nearExit) {
+      this.infoText.setText("掃除ボタンで帰還");
+    } else if (this.exitAvailable && this.time.now >= this.infoLockedUntil) {
+      this.infoText.setText("出口が開いた。緑の光へ向かおう。");
+    } else if (this.time.now >= this.infoLockedUntil) {
+      this.infoText.setText(`攻撃:J / メニュー:右上 / 清掃80%で出口 (${cleanRate}%)`);
+    }
+  }
+
+  private updateHudBar(bar: HudBar, ratio: number, label: string): void {
+    bar.fill.displayWidth = Phaser.Math.Clamp(ratio, 0, 1) * bar.width;
+    bar.label.setText(label);
+  }
+
+  private finishRun(cleared: boolean, retreated = false): void {
+    this.finished = true;
+    const cleanRate = this.getCleanRate();
+    const earnedMoney = getInventoryValue(this.runInventory);
+    const result: RunResult = {
+      cleared,
+      retreated,
+      cleaned: this.cleaned,
+      totalDebris: this.totalDebris,
+      cleanScore: this.cleanScore,
+      damageTaken: this.damageTaken,
+      durationMs: Math.floor(this.time.now - this.runStartedAt),
+      inventory: this.runInventory,
+      earnedMoney,
+      rank: this.getRank(cleared, retreated, cleanRate)
+    };
+    this.scene.start("ResultScene", result);
+  }
+
+  private getRank(cleared: boolean, retreated: boolean, cleanRate: number): RunResult["rank"] {
+    if (retreated || !cleared) return cleanRate >= 0.5 ? "C" : "D";
+    if (cleanRate >= 0.9 && this.damageTaken <= 15) return "S";
+    if (cleanRate >= 0.7) return "A";
+    if (cleanRate >= 0.5) return "B";
+    return "C";
+  }
+
+  private getCleanRate(): number {
+    return Phaser.Math.Clamp(this.cleanScore / 100, 0, 1);
+  }
+
+  private setExitVisible(visible: boolean): void {
+    this.exitZone.setVisible(visible);
+    this.exitGlow.setVisible(visible);
+    this.exitArrow.setVisible(visible);
+    this.exitLabel.setVisible(visible);
   }
 
   private showInfo(text: string, durationMs: number): void {
     this.infoText.setText(text);
     this.infoLockedUntil = Math.max(this.infoLockedUntil, this.time.now + durationMs);
+  }
+
+  private formatInventory(inventory: Record<ItemId, number>): string {
+    const lines = Object.entries(inventory)
+      .filter(([, count]) => count > 0)
+      .map(([id, count]) => `${ITEMS[id as ItemId].name}x${count}`);
+    return lines.length > 0 ? lines.join(" / ") : "素材なし";
   }
 
   private playTone(frequency: number, duration: number, type: OscillatorType, volume: number): void {
@@ -679,178 +968,15 @@ export class DungeonScene extends Phaser.Scene {
     }
   }
 
-  private spawnMaterial(x: number, y: number, itemId: ItemId): void {
-    const material = this.add.star(x, y, 5, 6, 12, 0xf2d49b, 1)
-      .setStrokeStyle(1, 0x3b2717, 0.7) as MaterialObject;
-    this.physics.add.existing(material);
-    material.itemId = itemId;
-    this.materials.add(material);
-    material.setScale(0.25);
-    this.tweens.add({
-      targets: material,
-      scale: 1,
-      duration: 120,
-      ease: "Back.easeOut"
-    });
-    this.tweens.add({
-      targets: material,
-      y: y - 10,
-      duration: 140,
-      ease: "Back.easeOut",
-      yoyo: true,
-      hold: 30,
-      onComplete: () => {
-        if (material.active) material.setY(y);
-      }
-    });
-  }
-
-  private collectMaterial(material: MaterialObject): void {
-    const capacity = getBagCapacity(this.save.player.bagLevel);
-    if (getInventoryCount(this.runInventory) >= capacity) {
-      this.showInfo("バッグがいっぱいです。出口へ戻ろう。", 900);
-      this.playTone(120, 0.08, "square", 0.035);
-      return;
-    }
-
-    this.runInventory[material.itemId] += 1;
-    this.playTone(760, 0.055, "triangle", 0.045);
-    this.showInfo("素材を回収", 420);
-    material.destroy();
-  }
-
-  private updateEnemies(time: number): void {
-    this.enemies = this.enemies.filter((enemy) => enemy.active && enemy.body);
-
-    for (const enemy of this.enemies) {
-      const offset = Math.sin(time / 850) * 72;
-      if (enemy.patrolAxis === "x") enemy.setX(enemy.originX + offset);
-      else enemy.setY(enemy.originY + offset);
-      enemy.visual.setPosition(enemy.x, enemy.y);
-      const wobble = Math.sin(time / 150);
-      enemy.core.setScale(1 + wobble * 0.055, 1 - wobble * 0.045);
-      enemy.warning.setScale(1 + Math.max(0, wobble) * 0.12);
-      enemy.visual.setAngle(enemy.patrolAxis === "x" ? wobble * 2 : -wobble * 2);
-      enemy.body.updateFromGameObject();
-    }
-  }
-
-  private updatePlayerVisual(time: number, input: Phaser.Math.Vector2): void {
-    if (!this.playerVisual) return;
-
-    const moving = input.lengthSq() > 0.001;
-    const bob = moving ? Math.sin(time / 115) * 1.6 : Math.sin(time / 420) * 0.45;
-    const sway = moving ? Math.sin(time / 130) : 0;
-    const facing = this.lastFacing;
-
-    this.playerVisual.root.setPosition(this.player.x, this.player.y + bob);
-    this.playerVisual.hat.setY(-15 + sway * 0.9);
-    this.playerVisual.bag.setPosition(-9 - facing.x * 2.2, 2 - facing.y * 1.4 - sway * 0.7);
-    this.playerVisual.broom.setPosition(facing.x * 10, 4 + facing.y * 6);
-    this.playerVisual.broom.setRotation(facing.angle() - Math.PI / 2 + sway * 0.035);
-  }
-
-  private checkHazards(time: number): void {
-    if (time - this.lastDamageAt < 650 || time < this.dodgingUntil) return;
-
-    const enemyHit = this.enemies.some((enemy) => Phaser.Geom.Intersects.RectangleToRectangle(
-      this.player.getBounds(),
-      enemy.getBounds()
-    ));
-    const trapHit = this.traps.some((trap) => Phaser.Geom.Intersects.RectangleToRectangle(
-      this.player.getBounds(),
-      trap.body.getBounds()
-    ));
-
-    if (!enemyHit && !trapHit) return;
-
-    const damage = enemyHit ? 12 : 8;
-    this.hp = Math.max(0, this.hp - damage);
-    this.damageTaken += damage;
-    this.lastDamageAt = time;
-    this.cameras.main.shake(110, 0.008);
-    this.flashPlayerVisual();
-    this.showInfo(enemyHit ? `危険な魔物に接触: ${damage}ダメージ` : `危険床を踏んだ: ${damage}ダメージ`, 820);
-    this.playTone(95, 0.09, "sawtooth", 0.045);
-  }
-
-  private flashPlayerVisual(): void {
-    if (!this.playerVisual) return;
-
-    this.tweens.add({
-      targets: this.playerVisual.parts,
-      alpha: 0.36,
-      duration: 55,
-      yoyo: true,
-      repeat: 1,
-      ease: "Sine.easeInOut",
-      onComplete: () => {
-        for (const part of this.playerVisual.parts) {
-          if ("setAlpha" in part && typeof part.setAlpha === "function") part.setAlpha(1);
-        }
-      }
-    });
-  }
-
-  private refreshHud(nearExit: boolean): void {
-    const inventoryCount = getInventoryCount(this.runInventory);
-    const capacity = getBagCapacity(this.save.player.bagLevel);
-    const cleanRate = Math.floor(this.getCleanRate() * 100);
-    this.hudText.setText("はじまりの地下道");
-    this.updateHudBar(this.hpBar, this.hp / 100, `HP ${Math.ceil(this.hp)}`);
-    this.updateHudBar(this.staminaBar, this.stamina / 100, `STM ${Math.ceil(this.stamina)}`);
-    this.updateHudBar(this.bagBar, inventoryCount / capacity, `素材 ${inventoryCount}/${capacity}`);
-    this.updateHudBar(this.cleanBar, cleanRate / 100, `清掃 ${cleanRate}%`);
-
-    if (nearExit) {
-      this.infoText.setText("出口ボタンで帰還");
-    } else if (this.exitAvailable && this.time.now >= this.infoLockedUntil) {
-      this.infoText.setText("出口が開いた。緑の光へ向かおう");
-    } else if (this.time.now >= this.infoLockedUntil) {
-      this.infoText.setText(`左スティックで移動 / 清掃80%で出口 (${cleanRate}%)`);
-    }
-  }
-
-  private finishRun(cleared: boolean, retreated = false): void {
-    this.finished = true;
-    const cleanRate = this.cleaned / this.totalDebris;
-    const earnedMoney = getInventoryValue(this.runInventory);
-    const rank = this.getRank(cleared, retreated, cleanRate);
-    const result: RunResult = {
-      cleared,
-      retreated,
-      cleaned: this.cleaned,
-      totalDebris: this.totalDebris,
-      damageTaken: this.damageTaken,
-      durationMs: Math.floor(this.time.now - this.runStartedAt),
-      inventory: this.runInventory,
-      earnedMoney,
-      rank
-    };
-
-    this.scene.start("ResultScene", result);
-  }
-
-  private getRank(cleared: boolean, retreated: boolean, cleanRate: number): RunResult["rank"] {
-    if (retreated || !cleared) return cleanRate >= 0.5 ? "C" : "D";
-    if (cleanRate >= 0.9 && this.damageTaken <= 15) return "S";
-    if (cleanRate >= 0.7) return "A";
-    if (cleanRate >= 0.5) return "B";
-    return "C";
-  }
-
   private getMoveInput(): Phaser.Math.Vector2 {
     const input = new Phaser.Math.Vector2();
     const pad = this.virtualPad.getDirection();
-
     input.x += pad.x;
     input.y += pad.y;
-
     if (this.cursors.left.isDown || this.wasd.left.isDown) input.x -= 1;
     if (this.cursors.right.isDown || this.wasd.right.isDown) input.x += 1;
     if (this.cursors.up.isDown || this.wasd.up.isDown) input.y -= 1;
     if (this.cursors.down.isDown || this.wasd.down.isDown) input.y += 1;
-
     if (input.lengthSq() > 1) input.normalize();
     return input;
   }
