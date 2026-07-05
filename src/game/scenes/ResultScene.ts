@@ -17,20 +17,24 @@ export class ResultScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
+    const compact = width < 430;
     const save = loadSave();
 
     save.player.money += this.result.earnedMoney;
+    for (const [id, count] of Object.entries(this.result.inventory)) {
+      save.inventory[id as ItemId] += count;
+    }
     save.progress.runs += 1;
     saveGame(save);
 
     this.cameras.main.setBackgroundColor("#181820");
     this.add.rectangle(width / 2, height / 2, width, height, 0x181820);
-    this.add.rectangle(width / 2, 194, width - 34, 284, 0x30281f, 1)
+    this.add.rectangle(width / 2, compact ? 200 : 194, width - 34, compact ? 302 : 284, 0x30281f, 1)
       .setStrokeStyle(2, 0x8b6338, 0.9);
 
     this.add.text(width / 2, 58, "作業報告", {
       fontFamily: "sans-serif",
-      fontSize: "30px",
+      fontSize: compact ? "28px" : "30px",
       color: "#f8e7c7",
       fontStyle: "700"
     }).setOrigin(0.5);
@@ -48,37 +52,40 @@ export class ResultScene extends Phaser.Scene {
     );
     const nextUpgradeText = nearestUpgrade === 0 ? "強化できます" : `次の強化まで あと${nearestUpgrade}G`;
 
-    this.add.text(width / 2, 190,
+    this.add.text(width / 2, compact ? 130 : 190,
       `ランク ${this.result.rank}\n` +
       `清掃率 ${cleanRate}% (${this.result.cleaned}/${this.result.totalDebris})\n` +
-      `回収素材 ${inventoryText}\n` +
-      `今回の売上 ${this.result.earnedMoney}G / 所持金 ${save.player.money}G\n` +
+      `素材 ${inventoryText}\n` +
+      `売上 ${this.result.earnedMoney}G / 所持金 ${save.player.money}G\n` +
       `${nextUpgradeText}\n` +
-      `被ダメージ ${this.result.damageTaken} / 作業時間 ${minutes}:${rest}`,
+      `被ダメ ${this.result.damageTaken} / 時間 ${minutes}:${rest}`,
       {
         fontFamily: "sans-serif",
-        fontSize: "17px",
+        fontSize: compact ? "15px" : "17px",
         color: "#f3efe8",
         align: "center",
-        lineSpacing: 8
+        lineSpacing: compact ? 7 : 8,
+        wordWrap: { width: width - 58, useAdvancedWrap: true }
       }
-    ).setOrigin(0.5);
+    ).setOrigin(0.5, compact ? 0 : 0.5);
 
-    this.add.text(width / 2, 358, this.result.cleared ? "無事に帰還しました。今日も床が少しきれいです。" : "途中撤退。持ち帰れた分だけ売上になります。", {
+    this.add.text(width / 2, compact ? 372 : 358, this.result.cleared ? "無事に帰還しました。\n今日も床が少しきれいです。" : "途中撤退。\n持ち帰れた分だけ売上になります。", {
       fontFamily: "sans-serif",
-      fontSize: "15px",
+      fontSize: compact ? "14px" : "15px",
       color: "#d7b77e",
       align: "center",
-      wordWrap: { width: width - 70 }
+      lineSpacing: 5,
+      wordWrap: { width: width - 70, useAdvancedWrap: true }
     }).setOrigin(0.5);
 
-    this.createButton(width / 2, height - 222, 268, 60, "もう一回行く", 0xd8913d, () => {
+    const buttonWidth = Math.min(268, width - 74);
+    this.createButton(width / 2, height - 222, buttonWidth, 60, "もう一回行く", 0xd8913d, () => {
       this.scene.start("DungeonScene");
     });
-    this.createButton(width / 2, height - 150, 268, 56, "拠点へ戻る", 0x4e6b7d, () => {
+    this.createButton(width / 2, height - 150, buttonWidth, 56, "拠点へ戻る", 0x4e6b7d, () => {
       this.scene.start("BaseScene");
     });
-    this.createButton(width / 2, height - 80, 268, 48, "タイトルへ", 0x2a2d38, () => {
+    this.createButton(width / 2, height - 80, buttonWidth, 48, "タイトルへ", 0x2a2d38, () => {
       this.scene.start("TitleScene");
     });
   }
