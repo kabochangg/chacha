@@ -26,10 +26,12 @@ export class ActionControls {
     const { width, height } = scene.scale;
     const topInset = readSafeAreaInset("top");
     const bottomInset = readSafeAreaInset("bottom");
-    const actionSideX = layout === "rightStickLeftButtons" ? 76 : width - 76;
-    const secondaryX = layout === "rightStickLeftButtons" ? 156 : width - 156;
+    const sideInset = width < 430 ? 82 : 88;
+    const secondaryInset = width < 430 ? 158 : 168;
+    const actionSideX = layout === "rightStickLeftButtons" ? sideInset : width - sideInset;
+    const secondaryX = layout === "rightStickLeftButtons" ? secondaryInset : width - secondaryInset;
     const cleanX = actionSideX;
-    const cleanY = height - Math.max(76, bottomInset + 64);
+    const cleanY = height - Math.max(86, bottomInset + 76);
     const attackX = cleanX;
     const attackY = cleanY - 104;
     const dodgeX = secondaryX;
@@ -41,7 +43,7 @@ export class ActionControls {
       x: cleanX,
       y: cleanY,
       radius: 42,
-      hitRadius: 52,
+      hitRadius: 56,
       label: "掃除",
       fillColor: 0xd8913d,
       strokeColor: 0xffd08a,
@@ -55,7 +57,7 @@ export class ActionControls {
       x: dodgeX,
       y: dodgeY,
       radius: 29,
-      hitRadius: 38,
+      hitRadius: 42,
       label: "回避",
       fillColor: 0x4e6b7d,
       strokeColor: 0xa7d2e7,
@@ -67,7 +69,7 @@ export class ActionControls {
       x: attackX,
       y: attackY,
       radius: 31,
-      hitRadius: 40,
+      hitRadius: 44,
       label: "払う",
       fillColor: 0x9b4350,
       strokeColor: 0xffb4a6,
@@ -238,7 +240,9 @@ export class ActionControls {
       fontFamily: "sans-serif",
       fontSize: `${config.fontSize}px`,
       color: config.labelColor,
-      fontStyle: "700"
+      fontStyle: "700",
+      stroke: config.labelColor === "#25170e" ? "#f7c574" : "#25303a",
+      strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
     return { button, label };

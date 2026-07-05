@@ -17,8 +17,9 @@ export class VirtualPad {
   constructor(private readonly scene: Phaser.Scene, layout: ControlLayout = "leftStickRightButtons") {
     const { width, height } = scene.scale;
     const bottomInset = readSafeAreaInset("bottom");
-    const x = layout === "rightStickLeftButtons" ? width - 88 : 88;
-    this.center.set(x, height - Math.max(76, bottomInset + 64));
+    const sideInset = width < 430 ? 94 : 104;
+    const x = layout === "rightStickLeftButtons" ? width - sideInset : sideInset;
+    this.center.set(x, height - Math.max(86, bottomInset + 76));
 
     this.base = scene.add.circle(this.center.x, this.center.y, this.radius, 0x1e2430, 0.62)
       .setStrokeStyle(3, 0xe2b56f, 0.7)

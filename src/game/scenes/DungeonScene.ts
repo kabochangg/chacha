@@ -475,27 +475,33 @@ export class DungeonScene extends Phaser.Scene {
 
   private createHud(): void {
     const { width } = this.scale;
+    const compact = width < 430;
     const panelX = width / 2;
-    this.add.rectangle(panelX, 42, width - 26, 78, 0x171722, 0.82)
+    const panelHeight = compact ? 84 : 78;
+    const leftBarWidth = compact ? 148 : 154;
+    const rightBarWidth = compact ? 108 : 154;
+    const rightBarX = compact ? width - 176 : Math.max(188, width - 178);
+
+    this.add.rectangle(panelX, 42, width - 26, panelHeight, 0x171722, 0.84)
       .setStrokeStyle(2, 0xe2b56f, 0.36)
       .setScrollFactor(0)
       .setDepth(90);
     this.hudText = this.add.text(panelX, 12, "", {
       fontFamily: "sans-serif",
-      fontSize: "15px",
+      fontSize: compact ? "14px" : "15px",
       color: "#f8e7c7",
       fontStyle: "700",
       align: "center"
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(91);
 
-    this.hpBar = this.createHudBar(23, 39, 154, "HP", 0xd95a4e);
-    this.staminaBar = this.createHudBar(23, 61, 154, "STM", 0x68b36f);
-    this.bagBar = this.createHudBar(Math.max(188, width - 178), 39, 154, "素材", 0xd8a54a);
-    this.cleanBar = this.createHudBar(Math.max(188, width - 178), 61, 154, "清掃", 0x6aa2cf);
+    this.hpBar = this.createHudBar(23, 39, leftBarWidth, "HP", 0xd95a4e);
+    this.staminaBar = this.createHudBar(23, 61, leftBarWidth, "STM", 0x68b36f);
+    this.bagBar = this.createHudBar(rightBarX, 39, rightBarWidth, "素材", 0xd8a54a);
+    this.cleanBar = this.createHudBar(rightBarX, 61, rightBarWidth, "清掃", 0x6aa2cf);
 
-    this.infoText = this.add.text(panelX, 86, "", {
+    this.infoText = this.add.text(panelX, compact ? 91 : 86, "", {
       fontFamily: "sans-serif",
-      fontSize: "14px",
+      fontSize: compact ? "13px" : "14px",
       color: "#ffe0a3",
       align: "center",
       fontStyle: "700",
@@ -517,9 +523,11 @@ export class DungeonScene extends Phaser.Scene {
       .setDepth(92);
     const text = this.add.text(x + 5, y - 7, label, {
       fontFamily: "sans-serif",
-      fontSize: "12px",
+      fontSize: width < 130 ? "11px" : "12px",
       color: "#fff4df",
-      fontStyle: "700"
+      fontStyle: "700",
+      stroke: "#171722",
+      strokeThickness: 2
     }).setOrigin(0, 0).setScrollFactor(0).setDepth(93);
     return { fill, label: text, width: width - 2 };
   }
