@@ -29,7 +29,7 @@ export class ActionControls {
     const actionSideX = layout === "rightStickLeftButtons" ? 76 : width - 76;
     const secondaryX = layout === "rightStickLeftButtons" ? 156 : width - 156;
     const cleanX = actionSideX;
-    const cleanY = height - Math.max(112, bottomInset + 92);
+    const cleanY = height - Math.max(76, bottomInset + 64);
     const attackX = cleanX;
     const attackY = cleanY - 104;
     const dodgeX = secondaryX;

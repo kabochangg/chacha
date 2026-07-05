@@ -109,6 +109,7 @@ export class DungeonScene extends Phaser.Scene {
   private exitLabel!: Phaser.GameObjects.Text;
   private exitArrow!: Phaser.GameObjects.Triangle;
   private pauseLayer?: Phaser.GameObjects.Container;
+  private blockedTiles = new Set<string>();
   private debris: DebrisObject[] = [];
   private materials!: Phaser.Physics.Arcade.Group;
   private enemies: EnemyObject[] = [];
@@ -274,6 +275,7 @@ export class DungeonScene extends Phaser.Scene {
     this.finished = false;
     this.paused = false;
     this.pauseLayer = undefined;
+    this.blockedTiles.clear();
     this.cleaningParticles = undefined;
   }
 
@@ -336,6 +338,7 @@ export class DungeonScene extends Phaser.Scene {
     const wall = this.add.rectangle(tileX * TILE + TILE / 2, tileY * TILE + TILE / 2, TILE, TILE, 0x413427)
       .setStrokeStyle(2, 0x69513a, 0.8);
     walls.add(wall);
+    this.blockedTiles.add(`${tileX},${tileY}`);
     const body = wall.body as Phaser.Physics.Arcade.StaticBody;
     body.setSize(TILE, TILE);
     body.updateFromGameObject();
@@ -791,13 +794,18 @@ export class DungeonScene extends Phaser.Scene {
       const playerInSight = distanceToPlayer < 160 + this.floor * 10 && toPlayer.clone().normalize().dot(facing) > 0.45;
       if (playerInSight) enemy.alerted = true;
 
+      let nextX: number;
+      let nextY: number;
       if (enemy.alerted && distanceToPlayer < 280) {
         toPlayer.normalize();
-        enemy.setPosition(enemy.x + toPlayer.x * (0.78 + this.floor * 0.06), enemy.y + toPlayer.y * (0.78 + this.floor * 0.06));
+        nextX = enemy.x + toPlayer.x * (0.78 + this.floor * 0.06);
+        nextY = enemy.y + toPlayer.y * (0.78 + this.floor * 0.06);
       } else {
         enemy.alerted = false;
-        enemy.setPosition(enemy.originX + xOffset, enemy.originY + yOffset);
+        nextX = enemy.originX + xOffset;
+        nextY = enemy.originY + yOffset;
       }
+      this.moveEnemyWithinWalls(enemy, nextX, nextY);
       const dx = enemy.x - wasX;
       const dy = enemy.y - wasY;
       if (Math.abs(dx) + Math.abs(dy) > 0.01) {
@@ -813,6 +821,35 @@ export class DungeonScene extends Phaser.Scene {
       this.drawEnemyVision(enemy);
       enemy.body.updateFromGameObject();
     }
+  }
+
+  private moveEnemyWithinWalls(enemy: EnemyObject, nextX: number, nextY: number): void {
+    const currentX = enemy.x;
+    const currentY = enemy.y;
+    let resolvedX = currentX;
+    let resolvedY = currentY;
+
+    if (this.isEnemyPositionWalkable(nextX, currentY)) resolvedX = nextX;
+    if (this.isEnemyPositionWalkable(resolvedX, nextY)) resolvedY = nextY;
+
+    enemy.setPosition(resolvedX, resolvedY);
+  }
+
+  private isEnemyPositionWalkable(x: number, y: number): boolean {
+    const margin = 17;
+    const points = [
+      [x - margin, y - margin],
+      [x + margin, y - margin],
+      [x - margin, y + margin],
+      [x + margin, y + margin]
+    ];
+
+    return points.every(([pointX, pointY]) => {
+      const tileX = Math.floor(pointX / TILE);
+      const tileY = Math.floor(pointY / TILE);
+      if (tileX < 0 || tileY < 0 || tileX >= MAP_WIDTH || tileY >= MAP_HEIGHT) return false;
+      return !this.blockedTiles.has(`${tileX},${tileY}`);
+    });
   }
 
   private drawEnemyVision(enemy: EnemyObject): void {
@@ -903,25 +940,29 @@ export class DungeonScene extends Phaser.Scene {
     const resume = this.createMenuButton(0, 86, "再開", 0xd8913d, () => this.closePauseMenu());
     const retreat = this.createMenuButton(0, 148, "拠点へ戻る", 0x4e6b7d, () => {
       this.closePauseMenu();
-      this.finishRun(false, true);
+      this.finished = true;
+      this.scene.start("BaseScene");
     });
     panel.add([bg, title, text, resume, retreat]);
     this.pauseLayer = panel;
   }
 
   private createMenuButton(x: number, y: number, label: string, color: number, onClick: () => void): Phaser.GameObjects.Container {
-    const button = this.add.rectangle(0, 0, 220, 48, color, 1).setStrokeStyle(2, 0xffd08a, 0.75)
-      .setInteractive({ useHandCursor: true });
+    const button = this.add.rectangle(0, 0, 220, 48, color, 1).setStrokeStyle(2, 0xffd08a, 0.75);
     const text = this.add.text(0, 0, label, {
       fontFamily: "sans-serif",
       fontSize: "18px",
       color: "#fff4df",
       fontStyle: "700"
     }).setOrigin(0.5);
-    const container = this.add.container(x, y, [button, text]);
-    button.on("pointerdown", () => container.setScale(0.98));
-    button.on("pointerout", () => container.setScale(1));
-    button.on("pointerup", () => {
+    const container = this.add.container(x, y, [button, text]).setSize(220, 48);
+    container.setInteractive(
+      new Phaser.Geom.Rectangle(-110, -24, 220, 48),
+      Phaser.Geom.Rectangle.Contains
+    );
+    container.on("pointerdown", () => container.setScale(0.98));
+    container.on("pointerout", () => container.setScale(1));
+    container.on("pointerup", () => {
       container.setScale(1);
       onClick();
     });

@@ -16,6 +16,7 @@ export class BaseScene extends Phaser.Scene {
   private panel!: Phaser.GameObjects.Container;
   private statusText!: Phaser.GameObjects.Text;
   private messageText!: Phaser.GameObjects.Text;
+  private compact = false;
 
   constructor() {
     super("BaseScene");
@@ -26,30 +27,31 @@ export class BaseScene extends Phaser.Scene {
     saveGame(this.save);
 
     const { width, height } = this.scale;
+    this.compact = width < 430;
     this.cameras.main.setBackgroundColor("#1d1a22");
     this.add.rectangle(width / 2, height / 2, width, height, 0x1d1a22);
     this.add.rectangle(width / 2, 58, width - 24, 82, 0x171722, 0.86)
       .setStrokeStyle(2, 0xe2b56f, 0.36);
 
-    this.add.text(width / 2, 30, "清掃員の拠点", {
+    this.add.text(width / 2, 24, "清掃員の拠点", {
       fontFamily: "sans-serif",
-      fontSize: "25px",
+      fontSize: this.compact ? "20px" : "25px",
       color: "#f8e7c7",
       fontStyle: "700"
     }).setOrigin(0.5);
 
-    this.statusText = this.add.text(width / 2, 64, "", {
+    this.statusText = this.add.text(width / 2, this.compact ? 69 : 64, "", {
       fontFamily: "sans-serif",
-      fontSize: "14px",
+      fontSize: this.compact ? "11px" : "14px",
       color: "#f3efe8",
       align: "center",
-      lineSpacing: 5
+      lineSpacing: this.compact ? 2 : 5
     }).setOrigin(0.5);
 
     this.panel = this.add.container(0, 0);
-    this.messageText = this.add.text(width / 2, height - 104, "", {
+    this.messageText = this.add.text(width / 2, this.compact ? height - 88 : height - 104, "", {
       fontFamily: "sans-serif",
-      fontSize: "14px",
+      fontSize: this.compact ? "12px" : "14px",
       color: "#ffe0a3",
       align: "center",
       wordWrap: { width: width - 60 }
@@ -69,11 +71,11 @@ export class BaseScene extends Phaser.Scene {
       ["requests", "依頼"],
       ["shop", "ショップ"]
     ];
-    const tabWidth = Math.floor((width - 24) / tabs.length);
+    const tabWidth = Math.floor((width - 20) / tabs.length);
     tabs.forEach(([tab, label], index) => {
-      this.createButton(12 + tabWidth * index + tabWidth / 2, height - 38, tabWidth - 5, 48, label, 0x2a2d38, () => {
+      this.createButton(10 + tabWidth * index + tabWidth / 2, height - 38, tabWidth - 4, 48, label, 0x2a2d38, () => {
         this.showTab(tab);
-      }, 13, false);
+      }, this.compact ? 11 : 13, false);
     });
   }
 
@@ -95,14 +97,15 @@ export class BaseScene extends Phaser.Scene {
 
   private showHome(): void {
     const { width, height } = this.scale;
-    this.addPanelText(width / 2, 132, "今日の清掃メモ", 22, "#f8e7c7");
-    this.addPanelText(width / 2, 176, "はじまりの地下道 B1F〜B5F\n清掃率80%以上で次の階へ。B5Fが最奥地です。", 16, "#f3efe8");
-    this.createButton(width / 2, height - 274, 282, 62, "はじまりの地下道へ", 0xd8913d, () => {
+    const buttonWidth = this.getButtonWidth();
+    this.addPanelText(width / 2, 132, "今日の清掃メモ", this.compact ? 20 : 22, "#f8e7c7");
+    this.addPanelText(width / 2, 176, "はじまりの地下道 B1F〜B5F\n清掃率80%以上で次の階へ。\nB5Fが最奥地です。", this.compact ? 14 : 16, "#f3efe8");
+    this.createButton(width / 2, height - 274, buttonWidth, 62, "はじまりの地下道へ", 0xd8913d, () => {
       this.scene.start("DungeonScene", { floor: 1 });
-    });
-    this.createButton(width / 2, height - 202, 282, 52, "操作UIを左右反転", 0x4e6b7d, () => this.toggleControls());
-    this.createButton(width / 2, height - 138, 282, 48, "タイトルへ", 0x2a2d38, () => this.scene.start("TitleScene"));
-    this.messageText.setText("短く潜って素材を持ち帰り、ショップで道具を整えましょう。");
+    }, this.compact ? 16 : 17);
+    this.createButton(width / 2, height - 202, buttonWidth, 52, "操作UIを左右反転", 0x4e6b7d, () => this.toggleControls(), this.compact ? 15 : 17);
+    this.createButton(width / 2, height - 138, buttonWidth, 48, "タイトルへ", 0x2a2d38, () => this.scene.start("TitleScene"), this.compact ? 15 : 17);
+    this.setMessage("短く潜って素材を持ち帰り、\nショップで道具を整えましょう。");
   }
 
   private showInventory(): void {
@@ -111,40 +114,42 @@ export class BaseScene extends Phaser.Scene {
     const lines = Object.entries(ITEMS)
       .map(([id, item]) => `${item.name}: ${this.save.inventory[id as ItemId]}個 / 売値${item.sellPrice}G`)
       .join("\n");
-    this.addPanelText(this.scale.width / 2, 132, "持ち物", 22, "#f8e7c7");
-    this.addPanelText(this.scale.width / 2, 188, `バッグ ${count}/${capacity}\n${lines}`, 16, "#f3efe8");
-    this.messageText.setText("素材は売上になるほか、ほうきや作業道具の生産にも使います。");
+    this.addPanelText(this.scale.width / 2, 132, "持ち物", this.compact ? 20 : 22, "#f8e7c7");
+    this.addPanelText(this.scale.width / 2, 188, `バッグ ${count}/${capacity}\n${lines}`, this.compact ? 14 : 16, "#f3efe8");
+    this.setMessage("素材は売上や、\n道具の生産に使います。");
   }
 
   private showMap(): void {
-    this.addPanelText(this.scale.width / 2, 132, "マップ", 22, "#f8e7c7");
+    this.addPanelText(this.scale.width / 2, 132, "マップ", this.compact ? 20 : 22, "#f8e7c7");
     this.addPanelText(
       this.scale.width / 2,
       190,
       "はじまりの地下道\nB1F → B2F → B3F → B4F → B5F 最奥地\n出撃ごとに開始位置、残骸、危険物の配置が変わります。",
-      16,
+      this.compact ? 14 : 16,
       "#f3efe8"
     );
-    this.messageText.setText("v1ではこの地下道を短く気持ちよく遊べるように磨きます。");
+    this.setMessage("v1ではこの地下道を、\n短く気持ちよく磨きます。");
   }
 
   private showRequests(): void {
     const next = this.save.progress.runs < 1 ? "初回の清掃で素材を3個持ち帰る" : "B5Fまで進み、危険物を1体片付ける";
-    this.addPanelText(this.scale.width / 2, 132, "依頼", 22, "#f8e7c7");
-    this.addPanelText(this.scale.width / 2, 190, `今の目標\n${next}\n\n図鑑メモ\nモンスター、素材、宝、プレイヤー成長はここで確認します。`, 16, "#f3efe8");
-    this.messageText.setText("依頼は次の一回で狙うことだけを示します。");
+    this.addPanelText(this.scale.width / 2, 132, "依頼", this.compact ? 20 : 22, "#f8e7c7");
+    this.addPanelText(this.scale.width / 2, 190, `今の目標\n${next}\n\n図鑑メモ\nモンスター、素材、宝、プレイヤー成長を確認します。`, this.compact ? 14 : 16, "#f3efe8");
+    this.setMessage("依頼は次の一回で\n狙うことだけを示します。");
   }
 
   private showShop(): void {
     const { width, height } = this.scale;
-    this.addPanelText(width / 2, 118, "ショップ", 22, "#f8e7c7");
-    this.createButton(width / 2, 174, 292, 44, `ほうき強化 ${getBroomUpgradeCost(this.save.player.broomLevel)}G`, 0x6f9345, () => this.spendGold("broom"));
-    this.createButton(width / 2, 226, 292, 44, `バッグ強化 ${getBagUpgradeCost(this.save.player.bagLevel)}G`, 0x4f7f96, () => this.spendGold("bag"));
-    this.createButton(width / 2, 278, 292, 44, `追い払い強化 ${getAttackUpgradeCost(this.save.player.attackLevel)}G`, 0x9b4350, () => this.spendGold("attack"));
-    this.createButton(width / 2, 330, 292, 44, `スタミナ強化 ${getStaminaUpgradeCost(this.save.player.staminaLevel)}G`, 0x5e8f58, () => this.spendGold("stamina"));
-    this.createButton(width / 2, height - 202, 292, 44, "強化ほうき生産 石材2 木片2", 0x8b6338, () => this.craft("broom"));
-    this.createButton(width / 2, height - 148, 292, 44, "作業道具生産 金属片1 木片2", 0x8b6338, () => this.craft("weapon"));
-    this.messageText.setText("強化は清掃速度、容量、危険物対処、行動継続に直結します。");
+    const buttonWidth = this.getButtonWidth();
+    const fontSize = this.compact ? 13 : 15;
+    this.addPanelText(width / 2, 118, "ショップ", this.compact ? 20 : 22, "#f8e7c7");
+    this.createButton(width / 2, 174, buttonWidth, 44, `ほうき強化 ${getBroomUpgradeCost(this.save.player.broomLevel)}G`, 0x6f9345, () => this.spendGold("broom"), fontSize);
+    this.createButton(width / 2, 226, buttonWidth, 44, `バッグ強化 ${getBagUpgradeCost(this.save.player.bagLevel)}G`, 0x4f7f96, () => this.spendGold("bag"), fontSize);
+    this.createButton(width / 2, 278, buttonWidth, 44, `追い払い強化 ${getAttackUpgradeCost(this.save.player.attackLevel)}G`, 0x9b4350, () => this.spendGold("attack"), fontSize);
+    this.createButton(width / 2, 330, buttonWidth, 44, `スタミナ強化 ${getStaminaUpgradeCost(this.save.player.staminaLevel)}G`, 0x5e8f58, () => this.spendGold("stamina"), fontSize);
+    this.createButton(width / 2, height - 202, buttonWidth, 44, "強化ほうき生産 石材2 木片2", 0x8b6338, () => this.craft("broom"), fontSize);
+    this.createButton(width / 2, height - 148, buttonWidth, 44, "作業道具生産 金属片1 木片2", 0x8b6338, () => this.craft("weapon"), fontSize);
+    this.setMessage("強化は清掃速度、容量、\n危険物対処、行動継続に直結します。");
   }
 
   private spendGold(kind: "broom" | "bag" | "attack" | "stamina"): void {
@@ -156,7 +161,7 @@ export class BaseScene extends Phaser.Scene {
     };
     const cost = costs[kind];
     if (this.save.player.money < cost) {
-      this.messageText.setText(`あと ${cost - this.save.player.money}G 必要です。`);
+      this.setMessage(`あと ${cost - this.save.player.money}G 必要です。`);
       return;
     }
     this.save.player.money -= cost;
@@ -165,7 +170,7 @@ export class BaseScene extends Phaser.Scene {
     if (kind === "attack") this.save.player.attackLevel += 1;
     if (kind === "stamina") this.save.player.staminaLevel += 1;
     saveGame(this.save);
-    this.messageText.setText("道具を整えました。次の清掃が少し楽になります。");
+    this.setMessage("道具を整えました。\n次の清掃が少し楽になります。");
     this.showTab("shop");
   }
 
@@ -173,12 +178,12 @@ export class BaseScene extends Phaser.Scene {
     const needs: Partial<Record<ItemId, number>> = kind === "broom" ? { stone: 2, wood: 2 } : { metal: 1, wood: 2 };
     const already = kind === "broom" ? this.save.player.craftedBroom : this.save.player.craftedWeapon;
     if (already) {
-      this.messageText.setText("もう生産済みです。");
+      this.setMessage("もう生産済みです。");
       return;
     }
     const missing = Object.entries(needs).find(([id, count]) => this.save.inventory[id as ItemId] < (count ?? 0));
     if (missing) {
-      this.messageText.setText(`${ITEMS[missing[0] as ItemId].name}が足りません。`);
+      this.setMessage(`${ITEMS[missing[0] as ItemId].name}が足りません。`);
       return;
     }
     Object.entries(needs).forEach(([id, count]) => {
@@ -187,7 +192,7 @@ export class BaseScene extends Phaser.Scene {
     if (kind === "broom") this.save.player.craftedBroom = true;
     if (kind === "weapon") this.save.player.craftedWeapon = true;
     saveGame(this.save);
-    this.messageText.setText(kind === "broom" ? "強化ほうきを生産しました。" : "作業道具を生産しました。");
+    this.setMessage(kind === "broom" ? "強化ほうきを生産しました。" : "作業道具を生産しました。");
     this.showTab("shop");
   }
 
@@ -195,7 +200,7 @@ export class BaseScene extends Phaser.Scene {
     this.save.settings.controlLayout =
       this.save.settings.controlLayout === "leftStickRightButtons" ? "rightStickLeftButtons" : "leftStickRightButtons";
     saveGame(this.save);
-    this.messageText.setText(
+    this.setMessage(
       this.save.settings.controlLayout === "leftStickRightButtons"
         ? "左スティック/右ボタンにしました。"
         : "右スティック/左ボタンにしました。"
@@ -221,7 +226,9 @@ export class BaseScene extends Phaser.Scene {
       fontFamily: "sans-serif",
       fontSize: `${fontSize}px`,
       color: "#fff4df",
-      fontStyle: "700"
+      fontStyle: "700",
+      align: "center",
+      wordWrap: { width: width - 14 }
     }).setOrigin(0.5);
     if (addToPanel) this.panel.add([button, text]);
     button.on("pointerdown", () => button.setScale(0.98));
@@ -249,9 +256,19 @@ export class BaseScene extends Phaser.Scene {
     const capacity = getBagCapacity(this.save.player.bagLevel);
     const count = getInventoryCount(this.save.inventory);
     this.statusText.setText(
-      `所持金 ${this.save.player.money}G / 素材 ${count}/${capacity} / 出動 ${this.save.progress.runs}回\n` +
+      `所持金 ${this.save.player.money}G / 出動 ${this.save.progress.runs}回\n` +
+      `素材 ${count}/${capacity}\n` +
       `ほうきLv.${this.save.player.broomLevel} バッグLv.${this.save.player.bagLevel} ` +
       `払うLv.${this.save.player.attackLevel} スタミナLv.${this.save.player.staminaLevel}`
     );
+  }
+
+  private getButtonWidth(): number {
+    return Math.min(292, this.scale.width - 56);
+  }
+
+  private setMessage(text: string): void {
+    this.messageText.setText(text);
+    this.messageText.setFontSize(this.compact ? 11 : 14);
   }
 }
