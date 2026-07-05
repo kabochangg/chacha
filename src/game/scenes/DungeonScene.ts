@@ -349,12 +349,7 @@ export class DungeonScene extends Phaser.Scene {
       this.addWall(walls, MAP_WIDTH - 1, y);
     }
 
-    [
-      [4, 4], [5, 4], [6, 4], [10, 4], [11, 4],
-      [4, 5], [11, 5], [4, 6], [8, 7], [9, 7],
-      [10, 7], [14, 8], [14, 9], [3, 11], [4, 11],
-      [5, 11], [9, 12], [10, 12], [11, 12]
-    ].forEach(([x, y]) => this.addWall(walls, x, y));
+    this.getFloorWallTiles().forEach(([x, y]) => this.addWall(walls, x, y));
 
     const startCandidates = [
       [2.5, 2.5], [3.5, 8.5], [6.5, 2.5], [2.5, 14.5], [8.5, 15.5]
@@ -380,12 +375,55 @@ export class DungeonScene extends Phaser.Scene {
     const enemyTiles = Phaser.Utils.Array.Shuffle([
       [6, 9], [13, 10], [15, 6], [4, 14], [11, 15], [3, 7], [15, 14]
     ]);
-    const enemyCount = Phaser.Math.Between(2, 5);
+    const enemyCount = this.getEnemyCountForFloor();
     const enemyDrops: ItemId[] = ["slime", "ash", "metal"];
     enemyTiles.slice(0, enemyCount).forEach(([x, y], index) => {
       this.addEnemy(x, y, index % 2 === 0 ? "loop" : "wave", enemyDrops[index % enemyDrops.length]);
     });
     this.createExit();
+  }
+
+  private getFloorWallTiles(): Array<[number, number]> {
+    const wallsByFloor: Record<number, Array<[number, number]>> = {
+      1: [
+        [5, 4], [10, 4], [4, 6],
+        [4, 11], [10, 12], [11, 12]
+      ],
+      2: [
+        [4, 4], [5, 4], [6, 4], [10, 4],
+        [11, 5], [4, 6], [9, 7],
+        [14, 8], [3, 11], [4, 11], [10, 12], [11, 12]
+      ],
+      3: [
+        [4, 4], [5, 4], [10, 4], [11, 4],
+        [4, 5], [4, 6], [8, 7], [9, 7], [10, 7],
+        [14, 8], [3, 11], [4, 11], [5, 11],
+        [9, 12], [10, 12]
+      ],
+      4: [
+        [4, 4], [5, 4], [6, 4], [10, 4], [11, 4],
+        [4, 5], [11, 5], [4, 6], [8, 7], [9, 7], [10, 7],
+        [14, 8], [14, 9], [3, 11], [4, 11], [5, 11],
+        [9, 12], [10, 12], [11, 12], [12, 14]
+      ],
+      5: [
+        [4, 4], [5, 4], [6, 4], [10, 4], [11, 4],
+        [4, 5], [11, 5], [4, 6], [8, 7], [9, 7], [10, 7],
+        [14, 8], [14, 9], [3, 11], [4, 11], [5, 11],
+        [9, 12], [10, 12], [11, 12], [12, 14],
+        [7, 14], [12, 15], [15, 10]
+      ]
+    };
+
+    return wallsByFloor[this.floor] ?? wallsByFloor[1];
+  }
+
+  private getEnemyCountForFloor(): number {
+    if (this.floor <= 1) return 0;
+    if (this.floor === 2) return 2;
+    if (this.floor === 3) return Phaser.Math.Between(2, 3);
+    if (this.floor === 4) return Phaser.Math.Between(3, 4);
+    return Phaser.Math.Between(4, 5);
   }
 
   private addWall(walls: Phaser.Physics.Arcade.StaticGroup, tileX: number, tileY: number): void {
