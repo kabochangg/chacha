@@ -168,6 +168,8 @@ export class DungeonScene extends Phaser.Scene {
   private exitAvailable = false;
   private finished = false;
   private paused = false;
+  private cleaningActive = false;
+  private cleaningTarget?: DebrisObject;
   private cleaningParticles?: Phaser.GameObjects.Particles.ParticleEmitter;
   private audioContext?: AudioContext;
   private save!: SaveData;
@@ -209,7 +211,7 @@ export class DungeonScene extends Phaser.Scene {
       this.collectMaterial(material as MaterialObject);
     });
     this.cameras.main.startFollow(this.player, true, 0.14, 0.14);
-    this.cameras.main.setBounds(0, 0, MAP_WIDTH * TILE, MAP_HEIGHT * TILE);
+    this.cameras.main.removeBounds();
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = this.input.keyboard!.addKeys({
@@ -261,9 +263,10 @@ export class DungeonScene extends Phaser.Scene {
 
     const nearExit = this.exitAvailable && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.exitZone.x, this.exitZone.y) < 58;
     this.controls.setPrimaryActionMode(nearExit ? "exit" : "clean");
+    this.controls.setCleaningActive(!nearExit && this.cleaningActive);
     const primaryPressed = this.controls.consumePrimaryPress();
+    const cleanPressed = Phaser.Input.Keyboard.JustDown(this.space) || primaryPressed;
     const interactPressed = Phaser.Input.Keyboard.JustDown(this.eKey) || primaryPressed;
-    const cleaningHeld = this.space.isDown || this.controls.isCleaning();
     const attackRequested = Phaser.Input.Keyboard.JustDown(this.jKey) || this.controls.consumeAttack();
 
     if (attackRequested) this.handleAttack(time);
@@ -274,12 +277,18 @@ export class DungeonScene extends Phaser.Scene {
       return;
     }
 
-    if (cleaningHeld && !nearExit && this.stamina > 0) {
-      this.handleCleaning(delta);
+    if (nearExit && this.cleaningActive) this.stopCleaning();
+    if (!nearExit && cleanPressed) this.toggleCleaning();
+
+    if (this.cleaningActive && !nearExit) {
+      if (this.stamina > 0) {
+        this.handleCleaning(delta);
+      } else {
+        this.stopCleaning("スタミナ切れ。少し待とう。", 500);
+      }
     } else {
       this.decayDebrisProgress(delta);
       this.cleaningRing.clear();
-      if (cleaningHeld && this.stamina <= 0) this.showInfo("スタミナ切れ。少し待とう。", 500);
       this.stamina = Math.min(this.maxStamina, this.stamina + delta * 0.018);
     }
 
@@ -312,6 +321,8 @@ export class DungeonScene extends Phaser.Scene {
     this.exitAvailable = false;
     this.finished = false;
     this.paused = false;
+    this.cleaningActive = false;
+    this.cleaningTarget = undefined;
     this.pauseLayer = undefined;
     this.blockedTiles.clear();
     this.cleaningParticles = undefined;
@@ -597,11 +608,10 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private handleCleaning(delta: number): void {
-    const target = this.findTargetDebris();
+    const target = this.getActiveCleaningTarget();
     this.stamina = Math.max(0, this.stamina - delta * 0.024);
     if (!target) {
-      this.drawCleaningRing(this.player.x + this.lastFacing.x * 34, this.player.y + this.lastFacing.y * 34, 0);
-      this.showInfo("残骸に近づいて長押し掃除", 250);
+      this.stopCleaning("掃除できる距離を離れた", 450);
       return;
     }
 
@@ -619,7 +629,53 @@ export class DungeonScene extends Phaser.Scene {
 
     if (target.debrisHp <= 0) {
       this.completeDebris(target);
+      this.cleaningTarget = undefined;
+      const nextTarget = this.findTargetDebris();
+      if (nextTarget) {
+        this.cleaningTarget = nextTarget;
+        this.showInfo(`${nextTarget.getData("name")} 掃除開始`, 360);
+      } else {
+        this.stopCleaning();
+      }
     }
+  }
+
+  private toggleCleaning(): void {
+    if (this.cleaningActive) {
+      this.stopCleaning("掃除を中断", 360);
+      return;
+    }
+
+    const target = this.findTargetDebris();
+    if (!target) {
+      this.drawCleaningRing(this.player.x + this.lastFacing.x * 34, this.player.y + this.lastFacing.y * 34, 0);
+      this.showInfo("残骸に近づいて掃除ボタン", 520);
+      return;
+    }
+
+    this.cleaningActive = true;
+    this.cleaningTarget = target;
+    this.controls.setCleaningActive(true);
+    this.showInfo(`${target.getData("name")} 掃除開始`, 360);
+  }
+
+  private stopCleaning(message?: string, duration = 300): void {
+    const wasCleaning = this.cleaningActive;
+    this.cleaningActive = false;
+    this.cleaningTarget = undefined;
+    this.controls?.setCleaningActive(false);
+    this.cleaningRing?.clear();
+    if (message && wasCleaning) this.showInfo(message, duration);
+  }
+
+  private getActiveCleaningTarget(): DebrisObject | undefined {
+    const target = this.cleaningTarget;
+    if (target?.active && target.body?.enable && this.isDebrisInCleaningRange(target)) return target;
+    return undefined;
+  }
+
+  private isDebrisInCleaningRange(target: DebrisObject): boolean {
+    return Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y) <= 72;
   }
 
   private completeDebris(target: DebrisObject): void {
@@ -989,7 +1045,7 @@ export class DungeonScene extends Phaser.Scene {
     const sway = moving ? Math.sin(time / 130) : 0;
     const facing = this.lastFacing;
     const direction = this.getFacingDirection();
-    const cleaning = this.space?.isDown || this.controls?.isCleaning();
+    const cleaning = this.cleaningActive;
     const damaged = time - this.lastDamageAt < 180;
     this.playerVisual.root.setPosition(this.player.x, this.player.y + bob);
     this.playerVisual.sprite.setTexture(damaged ? ASSET_KEYS.player.cleanerDamage : cleaning ? ASSET_KEYS.player.cleanerClean : moving ? ASSET_KEYS.player.cleanerWalk : ASSET_KEYS.player.cleaner);

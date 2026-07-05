@@ -1,4 +1,4 @@
-const CACHE_NAME = "chacha-v1-20260705-ui-polish";
+const CACHE_NAME = "chacha-v1-20260705-clean-toggle";
 const APP_SHELL = ["/", "/manifest.json", "/icons/icon.svg"];
 
 self.addEventListener("install", (event) => {

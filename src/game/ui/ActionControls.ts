@@ -4,12 +4,10 @@ import type { ControlLayout } from "./VirtualPad";
 type PrimaryActionMode = "clean" | "exit";
 
 export class ActionControls {
-  private cleanHeld = false;
   private cleanPressed = false;
   private dodgePressed = false;
   private attackPressed = false;
   private pausePressed = false;
-  private cleanPointerId: number | null = null;
   private dodgePointerId: number | null = null;
   private attackPointerId: number | null = null;
   private readonly cleanButton: Phaser.GameObjects.Arc;
@@ -92,12 +90,14 @@ export class ActionControls {
     });
 
     this.cleanButton.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (this.cleanPointerId !== null) return;
-      this.cleanPointerId = pointer.id;
-      this.cleanHeld = true;
       this.cleanPressed = true;
       this.cleanButton.setScale(0.94);
       this.cleanButton.setAlpha(1);
+      scene.time.delayedCall(110, () => {
+        if (this.destroyed) return;
+        this.cleanButton.setScale(1);
+        this.cleanButton.setAlpha(this.primaryMode === "exit" ? 0.92 : 0.88);
+      });
     });
 
     this.dodgeButton.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
@@ -120,13 +120,6 @@ export class ActionControls {
     });
 
     this.handlePointerEnd = (pointer: Phaser.Input.Pointer) => {
-      if (pointer.id === this.cleanPointerId) {
-        this.cleanPointerId = null;
-        this.cleanHeld = false;
-        this.cleanButton.setScale(1);
-        this.cleanButton.setAlpha(0.88);
-      }
-
       if (pointer.id === this.dodgePointerId) {
         this.dodgePointerId = null;
         this.dodgeButton.setScale(1);
@@ -139,10 +132,8 @@ export class ActionControls {
     };
 
     this.handleReleaseAll = () => {
-      this.cleanPointerId = null;
       this.dodgePointerId = null;
       this.attackPointerId = null;
-      this.cleanHeld = false;
       this.cleanPressed = false;
       this.cleanButton.setScale(1);
       this.cleanButton.setAlpha(0.88);
@@ -160,7 +151,7 @@ export class ActionControls {
   }
 
   isCleaning(): boolean {
-    return this.cleanHeld;
+    return false;
   }
 
   consumePrimaryPress(): boolean {
@@ -196,6 +187,22 @@ export class ActionControls {
       this.cleanButton.setStrokeStyle(3, 0xc6ffd0, 0.95);
       this.cleanLabel.setText("帰還");
       this.cleanLabel.setColor("#f8fff0");
+      return;
+    }
+
+    this.cleanButton.setFillStyle(0xd8913d, 0.88);
+    this.cleanButton.setStrokeStyle(3, 0xffd08a, 0.9);
+    this.cleanLabel.setText("掃除");
+    this.cleanLabel.setColor("#25170e");
+  }
+
+  setCleaningActive(active: boolean): void {
+    if (this.primaryMode !== "clean") return;
+    if (active) {
+      this.cleanButton.setFillStyle(0xf0b24f, 0.98);
+      this.cleanButton.setStrokeStyle(4, 0xfff0b8, 0.98);
+      this.cleanLabel.setText("中断");
+      this.cleanLabel.setColor("#25170e");
       return;
     }
 

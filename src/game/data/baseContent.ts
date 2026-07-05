@@ -85,7 +85,7 @@ export const CODEX_SECTIONS: CodexSection[] = [
     title: "成長",
     iconKey: ASSET_KEYS.player.cleaner,
     entries: [
-      { name: "ほうき", text: "掃除の速さに影響します。長押し掃除が短く済みます。", reveal: () => true },
+      { name: "ほうき", text: "掃除の速さに影響します。一度押して始める掃除が短く済みます。", reveal: () => true },
       { name: "バッグ", text: "持ち帰れる素材数が増えます。長めに潜る理由になります。", reveal: () => true },
       { name: "追い払い・スタミナ", text: "危険物の片付け速度と、掃除/回避の継続力を伸ばします。", reveal: () => true }
     ]
