@@ -1,4 +1,4 @@
-export type AssetCategory = "ui" | "item" | "enemy" | "debris" | "player" | "dungeon";
+export type AssetCategory = "ui" | "item" | "enemy" | "debris" | "player" | "dungeon" | "effect";
 
 export type PlaceholderShape = "circle" | "square" | "diamond" | "star" | "badge";
 
@@ -33,27 +33,86 @@ export const ASSET_KEYS = {
   },
   enemy: {
     slimeHazard: "enemy.slime_hazard",
+    slimeHazardAlert: "enemy.slime_hazard_alert",
     ashWisp: "enemy.ash_wisp",
-    caveWatcher: "enemy.cave_watcher"
+    ashWispAlert: "enemy.ash_wisp_alert",
+    caveWatcher: "enemy.cave_watcher",
+    caveWatcherAlert: "enemy.cave_watcher_alert"
   },
   debris: {
     smallStone: "debris.small_stone",
+    smallStoneHalf: "debris.small_stone_half",
     slimeTrail: "debris.slime_trail",
+    slimeTrailHalf: "debris.slime_trail_half",
     brokenCrate: "debris.broken_crate",
+    brokenCrateHalf: "debris.broken_crate_half",
     burntAsh: "debris.burnt_ash",
-    brokenChest: "debris.broken_chest"
+    burntAshHalf: "debris.burnt_ash_half",
+    brokenChest: "debris.broken_chest",
+    brokenChestHalf: "debris.broken_chest_half"
   },
   player: {
     cleaner: "player.cleaner",
+    cleanerWalk: "player.cleaner_walk",
+    cleanerClean: "player.cleaner_clean",
+    cleanerDamage: "player.cleaner_damage",
     broom: "player.broom",
     bag: "player.bag"
   },
   dungeon: {
     exit: "dungeon.exit",
+    exitOpen: "dungeon.exit_open",
     floorStone: "dungeon.floor_stone",
     wallStone: "dungeon.wall_stone"
+  },
+  effect: {
+    alertMark: "effect.alert_mark",
+    dustSmall: "effect.dust_small",
+    dustMedium: "effect.dust_medium"
   }
 } as const;
+
+export type ImageAsset = {
+  key: string;
+  path: string;
+};
+
+export const GAME_IMAGE_ASSETS: ImageAsset[] = [
+  { key: ASSET_KEYS.player.cleaner, path: "assets/game/player/cleaner_idle.png" },
+  { key: ASSET_KEYS.player.cleanerWalk, path: "assets/game/player/cleaner_walk.png" },
+  { key: ASSET_KEYS.player.cleanerClean, path: "assets/game/player/cleaner_clean.png" },
+  { key: ASSET_KEYS.player.cleanerDamage, path: "assets/game/player/cleaner_damage.png" },
+  { key: ASSET_KEYS.player.broom, path: "assets/game/player/broom_normal.png" },
+  { key: ASSET_KEYS.player.bag, path: "assets/game/player/bag_small.png" },
+  { key: ASSET_KEYS.debris.smallStone, path: "assets/game/debris/small_stone_full.png" },
+  { key: ASSET_KEYS.debris.smallStoneHalf, path: "assets/game/debris/small_stone_half.png" },
+  { key: ASSET_KEYS.debris.slimeTrail, path: "assets/game/debris/slime_trail_full.png" },
+  { key: ASSET_KEYS.debris.slimeTrailHalf, path: "assets/game/debris/slime_trail_half.png" },
+  { key: ASSET_KEYS.debris.brokenCrate, path: "assets/game/debris/broken_crate_full.png" },
+  { key: ASSET_KEYS.debris.brokenCrateHalf, path: "assets/game/debris/broken_crate_half.png" },
+  { key: ASSET_KEYS.debris.burntAsh, path: "assets/game/debris/burnt_ash_full.png" },
+  { key: ASSET_KEYS.debris.burntAshHalf, path: "assets/game/debris/burnt_ash_half.png" },
+  { key: ASSET_KEYS.debris.brokenChest, path: "assets/game/debris/broken_chest_full.png" },
+  { key: ASSET_KEYS.debris.brokenChestHalf, path: "assets/game/debris/broken_chest_half.png" },
+  { key: ASSET_KEYS.item.stone, path: "assets/game/item/stone.png" },
+  { key: ASSET_KEYS.item.wood, path: "assets/game/item/wood.png" },
+  { key: ASSET_KEYS.item.slime, path: "assets/game/item/slime.png" },
+  { key: ASSET_KEYS.item.ash, path: "assets/game/item/ash.png" },
+  { key: ASSET_KEYS.item.metal, path: "assets/game/item/metal.png" },
+  { key: ASSET_KEYS.enemy.slimeHazard, path: "assets/game/enemy/slime_hazard_idle.png" },
+  { key: ASSET_KEYS.enemy.slimeHazardAlert, path: "assets/game/enemy/slime_hazard_alert.png" },
+  { key: ASSET_KEYS.enemy.ashWisp, path: "assets/game/enemy/ash_wisp_idle.png" },
+  { key: ASSET_KEYS.enemy.ashWispAlert, path: "assets/game/enemy/ash_wisp_alert.png" },
+  { key: ASSET_KEYS.enemy.caveWatcher, path: "assets/game/enemy/cave_watcher_idle.png" },
+  { key: ASSET_KEYS.enemy.caveWatcherAlert, path: "assets/game/enemy/cave_watcher_alert.png" },
+  { key: ASSET_KEYS.dungeon.exit, path: "assets/game/dungeon/exit_closed.png" },
+  { key: ASSET_KEYS.dungeon.exitOpen, path: "assets/game/dungeon/exit_open.png" },
+  { key: ASSET_KEYS.dungeon.floorStone, path: "assets/game/dungeon/floor_stone.png" },
+  { key: ASSET_KEYS.dungeon.wallStone, path: "assets/game/dungeon/wall_stone.png" },
+  { key: ASSET_KEYS.effect.alertMark, path: "assets/game/effect/alert_mark.png" },
+  { key: ASSET_KEYS.effect.dustSmall, path: "assets/game/effect/dust_small.png" },
+  { key: ASSET_KEYS.effect.dustMedium, path: "assets/game/effect/dust_medium.png" }
+];
 
 export const PLACEHOLDER_ASSETS: Record<string, AssetPlaceholder> = {
   [ASSET_KEYS.ui.coin]: { key: ASSET_KEYS.ui.coin, category: "ui", label: "G", color: 0xdca84a, accent: 0xffe0a3, shape: "circle" },

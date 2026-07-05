@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { ASSET_KEYS } from "../data/assets";
 import { ITEMS, type ItemId, getInventoryCount, getInventoryValue } from "../data/items";
 import { getAttackPower, getBagCapacity, getCleaningPower, getMaxStamina } from "../data/upgrades";
 import { loadSave, type SaveData } from "../systems/SaveSystem";
@@ -25,19 +26,23 @@ type DebrisKind = {
   cleanValue: number;
 };
 
-type DebrisObject = Phaser.GameObjects.Rectangle & {
+type DebrisObject = Phaser.GameObjects.Image & {
   body: Phaser.Physics.Arcade.Body;
   debrisHp: number;
   maxDebrisHp: number;
   itemId: ItemId;
   baseAngle: number;
+  baseScale: number;
   cleanValue: number;
+  fullTexture: string;
+  halfTexture: string;
 };
 
-type MaterialObject = Phaser.GameObjects.Star & {
+type MaterialObject = Phaser.GameObjects.Image & {
   body: Phaser.Physics.Arcade.Body;
   itemId: ItemId;
   collected: boolean;
+  baseScale: number;
 };
 
 type EnemyObject = Phaser.GameObjects.Rectangle & {
@@ -50,9 +55,13 @@ type EnemyObject = Phaser.GameObjects.Rectangle & {
   maxHp: number;
   dropItem: ItemId;
   visual: Phaser.GameObjects.Container;
-  warning: Phaser.GameObjects.Text;
-  core: Phaser.GameObjects.Ellipse;
+  warning: Phaser.GameObjects.Image;
+  core: Phaser.GameObjects.Image;
   vision: Phaser.GameObjects.Graphics;
+  idleTexture: string;
+  alertTexture: string;
+  visualBaseScale: number;
+  warningBaseScale: number;
   alerted: boolean;
   facingX: number;
   facingY: number;
@@ -60,15 +69,15 @@ type EnemyObject = Phaser.GameObjects.Rectangle & {
 
 type PlayerVisual = {
   root: Phaser.GameObjects.Container;
-  hat: Phaser.GameObjects.Ellipse;
-  bag: Phaser.GameObjects.Ellipse;
-  broom: Phaser.GameObjects.Container;
+  sprite: Phaser.GameObjects.Image;
+  bag: Phaser.GameObjects.Image;
+  broom: Phaser.GameObjects.Image;
   parts: Phaser.GameObjects.GameObject[];
 };
 
 type TrapObject = {
   body: Phaser.GameObjects.Rectangle;
-  mark: Phaser.GameObjects.Text;
+  mark: Phaser.GameObjects.Image;
 };
 
 type HudBar = {
@@ -84,6 +93,30 @@ const DEBRIS_KINDS: DebrisKind[] = [
   { name: "焦げた灰", hp: 3, item: "ash", color: 0x4c4a4d, width: 38, height: 22, cleanValue: 15 },
   { name: "壊れた宝箱", hp: 3, item: "metal", color: 0xa67536, width: 40, height: 28, cleanValue: 15 }
 ];
+
+const DEBRIS_TEXTURES: Record<ItemId, { full: string; half: string }> = {
+  stone: { full: ASSET_KEYS.debris.smallStone, half: ASSET_KEYS.debris.smallStoneHalf },
+  slime: { full: ASSET_KEYS.debris.slimeTrail, half: ASSET_KEYS.debris.slimeTrailHalf },
+  wood: { full: ASSET_KEYS.debris.brokenCrate, half: ASSET_KEYS.debris.brokenCrateHalf },
+  ash: { full: ASSET_KEYS.debris.burntAsh, half: ASSET_KEYS.debris.burntAshHalf },
+  metal: { full: ASSET_KEYS.debris.brokenChest, half: ASSET_KEYS.debris.brokenChestHalf }
+};
+
+const ITEM_TEXTURES: Record<ItemId, string> = {
+  stone: ASSET_KEYS.item.stone,
+  wood: ASSET_KEYS.item.wood,
+  slime: ASSET_KEYS.item.slime,
+  ash: ASSET_KEYS.item.ash,
+  metal: ASSET_KEYS.item.metal
+};
+
+const ENEMY_TEXTURES: Record<ItemId, { idle: string; alert: string }> = {
+  stone: { idle: ASSET_KEYS.enemy.caveWatcher, alert: ASSET_KEYS.enemy.caveWatcherAlert },
+  wood: { idle: ASSET_KEYS.enemy.caveWatcher, alert: ASSET_KEYS.enemy.caveWatcherAlert },
+  slime: { idle: ASSET_KEYS.enemy.slimeHazard, alert: ASSET_KEYS.enemy.slimeHazardAlert },
+  ash: { idle: ASSET_KEYS.enemy.ashWisp, alert: ASSET_KEYS.enemy.ashWispAlert },
+  metal: { idle: ASSET_KEYS.enemy.caveWatcher, alert: ASSET_KEYS.enemy.caveWatcherAlert }
+};
 
 export class DungeonScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Rectangle & { body: Phaser.Physics.Arcade.Body };
@@ -105,6 +138,7 @@ export class DungeonScene extends Phaser.Scene {
   private cleanBar!: HudBar;
   private cleaningRing!: Phaser.GameObjects.Graphics;
   private exitZone!: Phaser.GameObjects.Rectangle;
+  private exitVisual!: Phaser.GameObjects.Image;
   private exitGlow!: Phaser.GameObjects.Ellipse;
   private exitLabel!: Phaser.GameObjects.Text;
   private exitArrow!: Phaser.GameObjects.Triangle;
@@ -284,6 +318,10 @@ export class DungeonScene extends Phaser.Scene {
       for (let x = 0; x < MAP_WIDTH; x += 1) {
         const color = (x + y) % 2 === 0 ? 0x24252c : 0x2a2a31;
         this.add.rectangle(x * TILE + TILE / 2, y * TILE + TILE / 2, TILE - 2, TILE - 2, color);
+        this.add.image(x * TILE + TILE / 2, y * TILE + TILE / 2, ASSET_KEYS.dungeon.floorStone)
+          .setDisplaySize(TILE, TILE)
+          .setAlpha(0.32)
+          .setDepth(0);
       }
     }
 
@@ -328,15 +366,20 @@ export class DungeonScene extends Phaser.Scene {
       [6, 9], [13, 10], [15, 6], [4, 14], [11, 15], [3, 7], [15, 14]
     ]);
     const enemyCount = Phaser.Math.Between(2, 5);
+    const enemyDrops: ItemId[] = ["slime", "ash", "metal"];
     enemyTiles.slice(0, enemyCount).forEach(([x, y], index) => {
-      this.addEnemy(x, y, index % 2 === 0 ? "loop" : "wave", index % 2 === 0 ? "slime" : "ash");
+      this.addEnemy(x, y, index % 2 === 0 ? "loop" : "wave", enemyDrops[index % enemyDrops.length]);
     });
     this.createExit();
   }
 
   private addWall(walls: Phaser.Physics.Arcade.StaticGroup, tileX: number, tileY: number): void {
     const wall = this.add.rectangle(tileX * TILE + TILE / 2, tileY * TILE + TILE / 2, TILE, TILE, 0x413427)
-      .setStrokeStyle(2, 0x69513a, 0.8);
+      .setStrokeStyle(2, 0x69513a, 0.8)
+      .setAlpha(0.18);
+    this.add.image(wall.x, wall.y, ASSET_KEYS.dungeon.wallStone)
+      .setDisplaySize(TILE + 3, TILE + 3)
+      .setDepth(5);
     walls.add(wall);
     this.blockedTiles.add(`${tileX},${tileY}`);
     const body = wall.body as Phaser.Physics.Arcade.StaticBody;
@@ -345,9 +388,12 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private addDebris(tileX: number, tileY: number, kind: DebrisKind): void {
-    const object = this.add.rectangle(tileX * TILE + TILE / 2, tileY * TILE + TILE / 2, kind.width, kind.height, kind.color, 1)
-      .setStrokeStyle(2, 0xd3aa72, 0.72)
-      .setAngle(Phaser.Math.Between(-12, 12)) as DebrisObject;
+    const textures = DEBRIS_TEXTURES[kind.item];
+    const object = this.add.image(tileX * TILE + TILE / 2, tileY * TILE + TILE / 2, textures.full)
+      .setAngle(Phaser.Math.Between(-12, 12))
+      .setDepth(16) as DebrisObject;
+    const baseScale = Math.min((kind.width + 18) / object.width, (kind.height + 16) / object.height);
+    object.setScale(baseScale);
     this.physics.add.existing(object);
     object.body.setImmovable(true);
     object.body.setSize(kind.width + 4, kind.height + 4);
@@ -355,7 +401,10 @@ export class DungeonScene extends Phaser.Scene {
     object.maxDebrisHp = kind.hp;
     object.itemId = kind.item;
     object.baseAngle = object.angle;
+    object.baseScale = baseScale;
     object.cleanValue = kind.cleanValue;
+    object.fullTexture = textures.full;
+    object.halfTexture = textures.half;
     object.setData("name", kind.name);
     this.debris.push(object);
   }
@@ -365,12 +414,9 @@ export class DungeonScene extends Phaser.Scene {
     const y = tileY * TILE + TILE / 2;
     const trap = this.add.rectangle(x, y, 38, 38, 0xb94035, 0.86)
       .setStrokeStyle(3, 0xffe0a8, 0.8);
-    const mark = this.add.text(x, y - 1, "!", {
-      fontFamily: "sans-serif",
-      fontSize: "24px",
-      color: "#fff2c2",
-      fontStyle: "900"
-    }).setOrigin(0.5);
+    const mark = this.add.image(x, y - 2, ASSET_KEYS.effect.alertMark)
+      .setDisplaySize(16, 36)
+      .setDepth(23);
     this.tweens.add({ targets: [trap, mark], alpha: 0.48, duration: 420, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     this.traps.push({ body: trap, mark });
   }
@@ -378,17 +424,16 @@ export class DungeonScene extends Phaser.Scene {
   private addEnemy(tileX: number, tileY: number, pattern: EnemyObject["pattern"], dropItem: ItemId): void {
     const x = tileX * TILE + TILE / 2;
     const y = tileY * TILE + TILE / 2;
+    const textures = ENEMY_TEXTURES[dropItem];
     const shadow = this.add.ellipse(0, 14, 42, 16, 0x190b0c, 0.38);
-    const glow = this.add.ellipse(0, 1, 39, 31, 0xff7b74, 0.24).setStrokeStyle(2, 0xffe0a8, 0.65);
-    const core = this.add.ellipse(0, 0, 33, 27, 0x9b335f, 0.96).setStrokeStyle(3, 0xdc5c52, 0.92);
-    const warning = this.add.text(0, -21, "!", {
-      fontFamily: "sans-serif",
-      fontSize: "20px",
-      color: "#fff2c2",
-      fontStyle: "900",
-      stroke: "#5d171d",
-      strokeThickness: 3
-    }).setOrigin(0.5).setVisible(false);
+    const glow = this.add.ellipse(0, 1, 43, 35, 0xff7b74, 0.2).setStrokeStyle(2, 0xffe0a8, 0.54);
+    const core = this.add.image(0, 0, textures.idle);
+    const visualBaseScale = Math.min(44 / core.width, 42 / core.height);
+    core.setScale(visualBaseScale);
+    const warning = this.add.image(0, -30, ASSET_KEYS.effect.alertMark)
+      .setVisible(false);
+    const warningBaseScale = Math.min(14 / warning.width, 30 / warning.height);
+    warning.setScale(warningBaseScale);
     const visual = this.add.container(x, y, [shadow, glow, core, warning]).setDepth(24);
     const vision = this.add.graphics().setDepth(20);
     const enemy = this.add.rectangle(x, y, 32, 28, 0xdc5c52, 0) as EnemyObject;
@@ -406,6 +451,10 @@ export class DungeonScene extends Phaser.Scene {
     enemy.warning = warning;
     enemy.core = core;
     enemy.vision = vision;
+    enemy.idleTexture = textures.idle;
+    enemy.alertTexture = textures.alert;
+    enemy.visualBaseScale = visualBaseScale;
+    enemy.warningBaseScale = warningBaseScale;
     enemy.alerted = false;
     enemy.facingX = 1;
     enemy.facingY = 0;
@@ -414,7 +463,11 @@ export class DungeonScene extends Phaser.Scene {
 
   private createExit(): void {
     this.exitZone = this.add.rectangle((MAP_WIDTH - 2) * TILE + TILE / 2, (MAP_HEIGHT - 3) * TILE + TILE / 2, 40, 50, 0x4d8f6a)
-      .setStrokeStyle(3, 0xa7e8b3, 0.85);
+      .setStrokeStyle(3, 0xa7e8b3, 0.85)
+      .setAlpha(0.08);
+    this.exitVisual = this.add.image(this.exitZone.x, this.exitZone.y, ASSET_KEYS.dungeon.exit)
+      .setDisplaySize(42, 58)
+      .setDepth(14);
     this.exitGlow = this.add.ellipse(this.exitZone.x, this.exitZone.y + 2, 62, 70, 0x7ce59a, 0.2)
       .setStrokeStyle(2, 0xc6ffd0, 0.45);
     this.exitArrow = this.add.triangle(this.exitZone.x, this.exitZone.y - 48, 0, 0, 34, 0, 17, 24, 0xfff0a8, 0.95)
@@ -427,7 +480,7 @@ export class DungeonScene extends Phaser.Scene {
       backgroundColor: "#1c3b26",
       padding: { x: 7, y: 3 }
     }).setOrigin(0.5);
-    this.tweens.add({ targets: [this.exitArrow, this.exitLabel], y: "-=5", duration: 560, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    this.tweens.add({ targets: [this.exitVisual, this.exitArrow, this.exitLabel], y: "-=5", duration: 560, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     this.setExitVisible(false);
   }
 
@@ -447,19 +500,16 @@ export class DungeonScene extends Phaser.Scene {
     const broomLevel = this.save?.player.broomLevel ?? 1;
     const bagLevel = this.save?.player.bagLevel ?? 1;
     const shadow = this.add.ellipse(0, 17, 25, 9, 0x190b0c, 0.38);
-    const bag = this.add.ellipse(-9, 2, 16 + bagLevel * 1.5, 24 + bagLevel * 1.2, bagLevel >= 3 ? 0x8f6f4a : 0x7c6548, 1)
-      .setStrokeStyle(2, 0x3b2717, 0.92);
-    const body = this.add.rectangle(0, 5, 17, 21, 0x607789, 1).setStrokeStyle(2, 0x26313b, 1);
-    const apron = this.add.triangle(0, 9, 0, 0, 14, 0, 7, 15, 0x8b5f35, 1).setStrokeStyle(1, 0x3b2717, 0.9);
-    const face = this.add.ellipse(0, -6, 15, 13, 0xd8b891, 1).setStrokeStyle(1, 0x3b2717, 0.85);
-    const mask = this.add.rectangle(0, -4, 13, 6, 0xe6ddd2, 1).setStrokeStyle(1, 0x6d6257, 0.8);
-    const eyeA = this.add.ellipse(-4, -9, 2.5, 3.5, 0x171722, 1);
-    const eyeB = this.add.ellipse(4, -9, 2.5, 3.5, 0x171722, 1);
-    const hat = this.add.ellipse(0, -15, 24, 12, broomLevel >= 3 ? 0xe2b56f : 0xd6a34d, 1).setStrokeStyle(2, 0x6e4921, 1);
-    const hatTop = this.add.ellipse(0, -20, 16, 10, 0xc88d3b, 1).setStrokeStyle(1, 0x6e4921, 0.85);
-    const broom = this.createBroomVisual(broomLevel);
-    const root = this.add.container(x, y, [shadow, bag, broom, body, apron, face, mask, eyeA, eyeB, hat, hatTop]).setDepth(28);
-    return { root, hat, bag, broom, parts: [bag, broom, body, apron, face, mask, eyeA, eyeB, hat, hatTop] };
+    const bag = this.add.image(-12, 5, ASSET_KEYS.player.bag)
+      .setScale(Math.min((17 + bagLevel * 2) / 227, (22 + bagLevel * 2) / 224))
+      .setAlpha(0.94);
+    const broom = this.add.image(11, 6, ASSET_KEYS.player.broom)
+      .setScale(Math.min((13 + broomLevel * 2) / 234, (35 + broomLevel * 3) / 296))
+      .setOrigin(0.5, 0.2);
+    const sprite = this.add.image(0, 0, ASSET_KEYS.player.cleaner)
+      .setScale(Math.min(33 / 283, 43 / 394));
+    const root = this.add.container(x, y, [shadow, bag, broom, sprite]).setDepth(28);
+    return { root, sprite, bag, broom, parts: [bag, broom, sprite] };
   }
 
   private createBroomVisual(level: number): Phaser.GameObjects.Container {
@@ -571,8 +621,8 @@ export class DungeonScene extends Phaser.Scene {
     this.tweens.add({
       targets: target,
       alpha: 0,
-      scaleX: 0.2,
-      scaleY: 0.2,
+      scaleX: target.baseScale * 0.2,
+      scaleY: target.baseScale * 0.2,
       angle: target.baseAngle + 35,
       duration: 160,
       ease: "Back.easeIn",
@@ -586,7 +636,8 @@ export class DungeonScene extends Phaser.Scene {
       if (object.debrisHp >= object.maxDebrisHp) continue;
       object.debrisHp = Math.min(object.maxDebrisHp, object.debrisHp + object.maxDebrisHp * (delta / 2400));
       const progress = Phaser.Math.Clamp(1 - object.debrisHp / object.maxDebrisHp, 0, 1);
-      object.setScale(1 - progress * 0.18);
+      object.setTexture(progress >= 0.5 ? object.halfTexture : object.fullTexture);
+      object.setScale(object.baseScale * (1 - progress * 0.18));
       object.setAlpha(1 - progress * 0.18);
       object.setAngle(object.baseAngle);
     }
@@ -709,7 +760,8 @@ export class DungeonScene extends Phaser.Scene {
   private animateDebrisCleaning(target: DebrisObject, progress: number): void {
     const pulse = Math.sin(this.time.now / 45) * 0.035;
     const shrink = 1 - progress * 0.18;
-    target.setScale(shrink + pulse);
+    target.setTexture(progress >= 0.5 ? target.halfTexture : target.fullTexture);
+    target.setScale(target.baseScale * (shrink + pulse));
     target.setAngle(target.baseAngle + Math.sin(this.time.now / 38) * (2 + progress * 4));
     target.setAlpha(1 - progress * 0.18);
   }
@@ -738,13 +790,16 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private spawnMaterial(x: number, y: number, itemId: ItemId): void {
-    const material = this.add.star(x, y, 5, 6, 12, 0xf2d49b, 1).setStrokeStyle(1, 0x3b2717, 0.7) as MaterialObject;
+    const material = this.add.image(x, y, ITEM_TEXTURES[itemId])
+      .setDepth(18) as MaterialObject;
     this.physics.add.existing(material);
     material.itemId = itemId;
     material.collected = false;
+    material.baseScale = Math.min(24 / material.width, 24 / material.height);
+    material.body.setSize(26, 26);
     this.materials.add(material);
-    material.setScale(0.25);
-    this.tweens.add({ targets: material, scale: 1, duration: 120, ease: "Back.easeOut" });
+    material.setScale(material.baseScale * 0.25);
+    this.tweens.add({ targets: material, scale: material.baseScale, duration: 120, ease: "Back.easeOut" });
     this.tweens.add({
       targets: material,
       y: y - 10,
@@ -822,9 +877,10 @@ export class DungeonScene extends Phaser.Scene {
       }
       enemy.visual.setPosition(enemy.x, enemy.y);
       const wobble = Math.sin(time / 150 + phase);
-      enemy.core.setScale(1 + wobble * 0.055, 1 - wobble * 0.045);
+      enemy.core.setTexture(enemy.alerted ? enemy.alertTexture : enemy.idleTexture);
+      enemy.core.setScale(enemy.visualBaseScale * (1 + wobble * 0.055), enemy.visualBaseScale * (1 - wobble * 0.045));
       enemy.warning.setVisible(enemy.alerted);
-      enemy.warning.setScale(1 + Math.max(0, wobble) * 0.18);
+      enemy.warning.setScale(enemy.warningBaseScale * (1 + Math.max(0, wobble) * 0.18));
       enemy.visual.setAngle(wobble * 2);
       this.drawEnemyVision(enemy);
       enemy.body.updateFromGameObject();
@@ -877,9 +933,12 @@ export class DungeonScene extends Phaser.Scene {
     const bob = moving ? Math.sin(time / 115) * 1.6 : Math.sin(time / 420) * 0.45;
     const sway = moving ? Math.sin(time / 130) : 0;
     const facing = this.lastFacing;
+    const cleaning = this.space?.isDown || this.controls?.isCleaning();
+    const damaged = time - this.lastDamageAt < 180;
     this.playerVisual.root.setPosition(this.player.x, this.player.y + bob);
-    this.playerVisual.hat.setY(-15 + sway * 0.9);
-    this.playerVisual.bag.setPosition(-9 - facing.x * 2.2, 2 - facing.y * 1.4 - sway * 0.7);
+    this.playerVisual.sprite.setTexture(damaged ? ASSET_KEYS.player.cleanerDamage : cleaning ? ASSET_KEYS.player.cleanerClean : moving ? ASSET_KEYS.player.cleanerWalk : ASSET_KEYS.player.cleaner);
+    this.playerVisual.sprite.setRotation(sway * 0.025);
+    this.playerVisual.bag.setPosition(-12 - facing.x * 2.2, 5 - facing.y * 1.4 - sway * 0.7);
     this.playerVisual.broom.setPosition(facing.x * 10, 4 + facing.y * 6);
     this.playerVisual.broom.setRotation(facing.angle() - Math.PI / 2 + sway * 0.035);
   }
@@ -1058,6 +1117,8 @@ export class DungeonScene extends Phaser.Scene {
 
   private setExitVisible(visible: boolean): void {
     this.exitZone.setVisible(visible);
+    this.exitVisual.setVisible(visible);
+    if (visible) this.exitVisual.setTexture(ASSET_KEYS.dungeon.exitOpen);
     this.exitGlow.setVisible(visible);
     this.exitArrow.setVisible(visible);
     this.exitLabel.setVisible(visible);
