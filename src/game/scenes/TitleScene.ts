@@ -17,21 +17,21 @@ export class TitleScene extends Phaser.Scene {
 
     this.add.text(width / 2, 82, "勇者のあとしまつ", {
       fontFamily: "sans-serif",
-      fontSize: "32px",
+      fontSize: "34px",
       color: "#f8e7c7",
       fontStyle: "700"
     }).setOrigin(0.5);
 
     this.add.text(width / 2, 124, "ダンジョン清掃員の生活", {
       fontFamily: "sans-serif",
-      fontSize: "18px",
+      fontSize: "20px",
       color: "#e2b56f",
       fontStyle: "700"
     }).setOrigin(0.5);
 
     this.add.text(width / 2, 222, "勇者が帰ったあと、\n地下道にはまだ仕事が残っている。", {
       fontFamily: "sans-serif",
-      fontSize: "17px",
+      fontSize: "19px",
       color: "#f3efe8",
       align: "center",
       lineSpacing: 8
@@ -39,7 +39,7 @@ export class TitleScene extends Phaser.Scene {
 
     this.add.text(width / 2, 302, "残骸を掃除して素材を集め、\nほうきとバッグを強化しよう。", {
       fontFamily: "sans-serif",
-      fontSize: "15px",
+      fontSize: "17px",
       color: "#d7b77e",
       align: "center",
       lineSpacing: 7
@@ -56,7 +56,7 @@ export class TitleScene extends Phaser.Scene {
 
     this.add.text(width / 2, height - 82, "スマホ縦画面推奨 / PCはWASD・Space対応", {
       fontFamily: "sans-serif",
-      fontSize: "13px",
+      fontSize: "15px",
       color: "#a99778",
       align: "center"
     }).setOrigin(0.5);
@@ -78,7 +78,7 @@ export class TitleScene extends Phaser.Scene {
 
     this.add.text(x, y, label, {
       fontFamily: "sans-serif",
-      fontSize: "20px",
+      fontSize: "22px",
       color: labelColor,
       fontStyle: "700"
     }).setOrigin(0.5);

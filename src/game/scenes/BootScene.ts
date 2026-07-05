@@ -13,6 +13,9 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    for (const asset of GAME_IMAGE_ASSETS) {
+      this.textures.get(asset.key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
     this.scale.lockOrientation("portrait");
     this.input.addPointer(3);
     this.scene.start("TitleScene");

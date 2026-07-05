@@ -34,7 +34,7 @@ export class ResultScene extends Phaser.Scene {
 
     this.add.text(width / 2, 58, "作業報告", {
       fontFamily: "sans-serif",
-      fontSize: compact ? "28px" : "30px",
+      fontSize: compact ? "30px" : "32px",
       color: "#f8e7c7",
       fontStyle: "700"
     }).setOrigin(0.5);
@@ -61,7 +61,7 @@ export class ResultScene extends Phaser.Scene {
       `被ダメ ${this.result.damageTaken} / 時間 ${minutes}:${rest}`,
       {
         fontFamily: "sans-serif",
-        fontSize: compact ? "15px" : "17px",
+        fontSize: compact ? "17px" : "19px",
         color: "#f3efe8",
         align: "center",
         lineSpacing: compact ? 7 : 8,
@@ -71,7 +71,7 @@ export class ResultScene extends Phaser.Scene {
 
     this.add.text(width / 2, compact ? 372 : 358, this.result.cleared ? "無事に帰還しました。\n今日も床が少しきれいです。" : "途中撤退。\n持ち帰れた分だけ売上になります。", {
       fontFamily: "sans-serif",
-      fontSize: compact ? "14px" : "15px",
+      fontSize: compact ? "16px" : "17px",
       color: "#d7b77e",
       align: "center",
       lineSpacing: 5,
@@ -104,7 +104,7 @@ export class ResultScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     this.add.text(x, y, label, {
       fontFamily: "sans-serif",
-      fontSize: height >= 58 ? "20px" : "18px",
+      fontSize: height >= 58 ? "22px" : "20px",
       color: "#fff4df",
       fontStyle: "700"
     }).setOrigin(0.5);

@@ -72,8 +72,11 @@ type PlayerVisual = {
   sprite: Phaser.GameObjects.Image;
   bag: Phaser.GameObjects.Image;
   broom: Phaser.GameObjects.Image;
+  directionMark: Phaser.GameObjects.Rectangle;
   parts: Phaser.GameObjects.GameObject[];
 };
+
+type FacingDirection = "down" | "left" | "right" | "up";
 
 type TrapObject = {
   body: Phaser.GameObjects.Rectangle;
@@ -474,7 +477,7 @@ export class DungeonScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x4c3819, 0.8);
     this.exitLabel = this.add.text(this.exitZone.x, this.exitZone.y - 72, "出口", {
       fontFamily: "sans-serif",
-      fontSize: "16px",
+      fontSize: "18px",
       color: "#f9ffd8",
       fontStyle: "700",
       backgroundColor: "#1c3b26",
@@ -508,8 +511,10 @@ export class DungeonScene extends Phaser.Scene {
       .setOrigin(0.5, 0.2);
     const sprite = this.add.image(0, 0, ASSET_KEYS.player.cleaner)
       .setScale(Math.min(33 / 283, 43 / 394));
-    const root = this.add.container(x, y, [shadow, bag, broom, sprite]).setDepth(28);
-    return { root, sprite, bag, broom, parts: [bag, broom, sprite] };
+    const directionMark = this.add.rectangle(0, -6, 12, 6, 0xf8e7c7, 0.9)
+      .setStrokeStyle(1, 0x3a2a20, 0.72);
+    const root = this.add.container(x, y, [shadow, bag, broom, sprite, directionMark]).setDepth(28);
+    return { root, sprite, bag, broom, directionMark, parts: [bag, broom, sprite, directionMark] };
   }
 
   private createBroomVisual(level: number): Phaser.GameObjects.Container {
@@ -538,7 +543,7 @@ export class DungeonScene extends Phaser.Scene {
       .setDepth(90);
     this.hudText = this.add.text(panelX, 12, "", {
       fontFamily: "sans-serif",
-      fontSize: compact ? "14px" : "15px",
+      fontSize: compact ? "16px" : "17px",
       color: "#f8e7c7",
       fontStyle: "700",
       align: "center"
@@ -551,7 +556,7 @@ export class DungeonScene extends Phaser.Scene {
 
     this.infoText = this.add.text(panelX, compact ? 91 : 86, "", {
       fontFamily: "sans-serif",
-      fontSize: compact ? "13px" : "14px",
+      fontSize: compact ? "15px" : "16px",
       color: "#ffe0a3",
       align: "center",
       fontStyle: "700",
@@ -573,7 +578,7 @@ export class DungeonScene extends Phaser.Scene {
       .setDepth(92);
     const text = this.add.text(x + 5, y - 7, label, {
       fontFamily: "sans-serif",
-      fontSize: width < 130 ? "11px" : "12px",
+      fontSize: width < 130 ? "13px" : "14px",
       color: "#fff4df",
       fontStyle: "700",
       stroke: "#171722",
@@ -917,15 +922,7 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private drawEnemyVision(enemy: EnemyObject): void {
-    const facing = new Phaser.Math.Vector2(enemy.facingX, enemy.facingY);
-    if (facing.lengthSq() < 0.01) facing.set(1, 0);
-    const angle = facing.angle();
-    const range = 132 + this.floor * 10;
-    const color = enemy.alerted ? 0xdc5c52 : 0xf2c36b;
     enemy.vision.clear();
-    enemy.vision.fillStyle(color, enemy.alerted ? 0.2 : 0.11);
-    enemy.vision.slice(enemy.x, enemy.y, range, angle - 0.42, angle + 0.42, false);
-    enemy.vision.fillPath();
   }
 
   private updatePlayerVisual(time: number, input: Phaser.Math.Vector2): void {
@@ -933,14 +930,42 @@ export class DungeonScene extends Phaser.Scene {
     const bob = moving ? Math.sin(time / 115) * 1.6 : Math.sin(time / 420) * 0.45;
     const sway = moving ? Math.sin(time / 130) : 0;
     const facing = this.lastFacing;
+    const direction = this.getFacingDirection();
     const cleaning = this.space?.isDown || this.controls?.isCleaning();
     const damaged = time - this.lastDamageAt < 180;
     this.playerVisual.root.setPosition(this.player.x, this.player.y + bob);
     this.playerVisual.sprite.setTexture(damaged ? ASSET_KEYS.player.cleanerDamage : cleaning ? ASSET_KEYS.player.cleanerClean : moving ? ASSET_KEYS.player.cleanerWalk : ASSET_KEYS.player.cleaner);
+    this.playerVisual.sprite.setFlipX(direction === "left");
     this.playerVisual.sprite.setRotation(sway * 0.025);
+    this.updateDirectionMark(direction);
     this.playerVisual.bag.setPosition(-12 - facing.x * 2.2, 5 - facing.y * 1.4 - sway * 0.7);
+    if (direction === "up") this.playerVisual.bag.setPosition(0, 8 - sway * 0.7);
     this.playerVisual.broom.setPosition(facing.x * 10, 4 + facing.y * 6);
     this.playerVisual.broom.setRotation(facing.angle() - Math.PI / 2 + sway * 0.035);
+  }
+
+  private getFacingDirection(): FacingDirection {
+    if (Math.abs(this.lastFacing.x) > Math.abs(this.lastFacing.y)) {
+      return this.lastFacing.x < 0 ? "left" : "right";
+    }
+    return this.lastFacing.y < 0 ? "up" : "down";
+  }
+
+  private updateDirectionMark(direction: FacingDirection): void {
+    const mark = this.playerVisual.directionMark;
+    if (direction === "up") {
+      mark.setPosition(0, -12).setDisplaySize(14, 5).setFillStyle(0x4f5f7c, 0.92).setAlpha(0.92);
+      return;
+    }
+    if (direction === "left") {
+      mark.setPosition(-6, -6).setDisplaySize(6, 9).setFillStyle(0xf8e7c7, 0.9).setAlpha(0.9);
+      return;
+    }
+    if (direction === "right") {
+      mark.setPosition(6, -6).setDisplaySize(6, 9).setFillStyle(0xf8e7c7, 0.9).setAlpha(0.9);
+      return;
+    }
+    mark.setPosition(0, -6).setDisplaySize(12, 6).setFillStyle(0xf8e7c7, 0.9).setAlpha(0.9);
   }
 
   private checkHazards(time: number): void {
@@ -986,7 +1011,7 @@ export class DungeonScene extends Phaser.Scene {
     const bg = this.add.rectangle(0, 0, width - 44, 360, 0x171722, 0.94).setStrokeStyle(2, 0xe2b56f, 0.8);
     const title = this.add.text(0, -144, "一時停止", {
       fontFamily: "sans-serif",
-      fontSize: "24px",
+      fontSize: "26px",
       color: "#f8e7c7",
       fontStyle: "700"
     }).setOrigin(0.5);
@@ -997,7 +1022,7 @@ export class DungeonScene extends Phaser.Scene {
       `所持金 ${this.save.player.money}G`,
       {
         fontFamily: "sans-serif",
-        fontSize: "16px",
+        fontSize: "18px",
         color: "#f3efe8",
         align: "center",
         lineSpacing: 8,
@@ -1018,18 +1043,16 @@ export class DungeonScene extends Phaser.Scene {
     const button = this.add.rectangle(0, 0, 220, 48, color, 1).setStrokeStyle(2, 0xffd08a, 0.75);
     const text = this.add.text(0, 0, label, {
       fontFamily: "sans-serif",
-      fontSize: "18px",
+      fontSize: "20px",
       color: "#fff4df",
       fontStyle: "700"
     }).setOrigin(0.5);
-    const container = this.add.container(x, y, [button, text]).setSize(220, 48);
-    container.setInteractive(
-      new Phaser.Geom.Rectangle(-110, -24, 220, 48),
-      Phaser.Geom.Rectangle.Contains
-    );
-    container.on("pointerdown", () => container.setScale(0.98));
-    container.on("pointerout", () => container.setScale(1));
-    container.on("pointerup", () => {
+    const hitArea = this.add.rectangle(0, 0, 240, 58, 0x000000, 0.001)
+      .setInteractive({ useHandCursor: true });
+    const container = this.add.container(x, y, [button, text, hitArea]).setSize(240, 58);
+    hitArea.on("pointerdown", () => container.setScale(0.98));
+    hitArea.on("pointerout", () => container.setScale(1));
+    hitArea.on("pointerup", () => {
       container.setScale(1);
       onClick();
     });

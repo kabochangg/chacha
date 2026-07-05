@@ -24,7 +24,7 @@ export function createAssetIcon(
   const shape = createPlaceholderShape(scene, size, spec.shape, spec.color, spec.accent);
   const text = scene.add.text(0, 0, labelOverride ?? spec.label, {
     fontFamily: "sans-serif",
-    fontSize: `${Math.max(10, Math.floor(size * 0.38))}px`,
+    fontSize: `${Math.max(12, Math.floor(size * 0.38) + 2)}px`,
     color: "#fff4df",
     fontStyle: "700",
     align: "center"

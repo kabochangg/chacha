@@ -48,7 +48,7 @@ export class ActionControls {
       fillColor: 0xd8913d,
       strokeColor: 0xffd08a,
       labelColor: "#25170e",
-      fontSize: 19
+      fontSize: 21
     });
     this.cleanButton = cleanControl.button;
     this.cleanLabel = cleanControl.label;
@@ -62,7 +62,7 @@ export class ActionControls {
       fillColor: 0x4e6b7d,
       strokeColor: 0xa7d2e7,
       labelColor: "#eef8ff",
-      fontSize: 15
+      fontSize: 17
     }).button;
 
     this.attackButton = this.createCircleButton({
@@ -74,7 +74,7 @@ export class ActionControls {
       fillColor: 0x9b4350,
       strokeColor: 0xffb4a6,
       labelColor: "#fff2e8",
-      fontSize: 15
+      fontSize: 17
     }).button;
 
     this.pauseButton = this.createRectButton({
@@ -88,7 +88,7 @@ export class ActionControls {
       fillColor: 0x1e2430,
       strokeColor: 0xe2b56f,
       labelColor: "#f8e7c7",
-      fontSize: 22
+      fontSize: 24
     });
 
     this.cleanButton.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
