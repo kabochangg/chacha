@@ -1,15 +1,33 @@
 import Phaser from "phaser";
-import { ITEMS, type ItemId, getInventoryCount } from "../data/items";
 import {
-  getAttackUpgradeCost,
-  getBagCapacity,
-  getBagUpgradeCost,
-  getBroomUpgradeCost,
-  getStaminaUpgradeCost
-} from "../data/upgrades";
+  BASE_TABS,
+  CODEX_SECTIONS,
+  HOME_MEMO,
+  MAP_INFO,
+  REQUESTS,
+  SHOP_ENTRIES,
+  getActiveRequest,
+  type BaseTab,
+  type CraftKind,
+  type RequestDefinition,
+  type ShopEntry,
+  type UpgradeKind
+} from "../data/baseContent";
+import { ASSET_KEYS } from "../data/assets";
+import { ITEMS, type ItemId, getInventoryCount } from "../data/items";
+import { getBagCapacity } from "../data/upgrades";
 import { loadSave, saveGame, type SaveData } from "../systems/SaveSystem";
+import { createAssetIcon } from "../ui/PlaceholderIcon";
 
-type BaseTab = "home" | "inventory" | "map" | "requests" | "shop";
+type PanelTextOptions = {
+  fontSize?: number;
+  color?: string;
+  align?: "left" | "center";
+  originX?: number;
+  originY?: number;
+  width?: number;
+  bold?: boolean;
+};
 
 export class BaseScene extends Phaser.Scene {
   private save!: SaveData;
@@ -30,28 +48,11 @@ export class BaseScene extends Phaser.Scene {
 
     const { width, height } = this.scale;
     this.compact = width < 430;
+    this.panelBottom = height - 112;
     this.cameras.main.setBackgroundColor("#1d1a22");
     this.add.rectangle(width / 2, height / 2, width, height, 0x1d1a22);
-    this.panelBottom = height - 112;
 
-    this.add.rectangle(width / 2, 58, width - 24, 82, 0x171722, 0.86)
-      .setStrokeStyle(2, 0xe2b56f, 0.36);
-
-    this.add.text(width / 2, 24, "清掃員の拠点", {
-      fontFamily: "sans-serif",
-      fontSize: this.compact ? "20px" : "25px",
-      color: "#f8e7c7",
-      fontStyle: "700"
-    }).setOrigin(0.5);
-
-    this.statusText = this.add.text(width / 2, this.compact ? 66 : 64, "", {
-      fontFamily: "sans-serif",
-      fontSize: this.compact ? "11px" : "14px",
-      color: "#f3efe8",
-      align: "center",
-      lineSpacing: this.compact ? 2 : 5
-    }).setOrigin(0.5);
-
+    this.createHeader();
     this.panel = this.add.container(0, 0);
     this.messageText = this.add.text(width / 2, this.compact ? height - 86 : height - 104, "", {
       fontFamily: "sans-serif",
@@ -67,27 +68,49 @@ export class BaseScene extends Phaser.Scene {
     this.refreshStatus();
   }
 
+  private createHeader(): void {
+    const { width } = this.scale;
+    this.add.rectangle(width / 2, 58, width - 24, 82, 0x171722, 0.86)
+      .setStrokeStyle(2, 0xe2b56f, 0.36);
+
+    this.add.text(width / 2, 24, "勇者のあとしまつ", {
+      fontFamily: "sans-serif",
+      fontSize: this.compact ? "20px" : "25px",
+      color: "#f8e7c7",
+      fontStyle: "700"
+    }).setOrigin(0.5);
+
+    this.statusText = this.add.text(width / 2, this.compact ? 66 : 64, "", {
+      fontFamily: "sans-serif",
+      fontSize: this.compact ? "11px" : "14px",
+      color: "#f3efe8",
+      align: "center",
+      lineSpacing: this.compact ? 2 : 5
+    }).setOrigin(0.5);
+  }
+
   private createTabBar(): void {
     const { width, height } = this.scale;
-    const tabs: Array<[BaseTab, string]> = [
-      ["home", "ホーム"],
-      ["inventory", "持ち物"],
-      ["map", "マップ"],
-      ["requests", "依頼"],
-      ["shop", "ショップ"]
-    ];
-    const tabWidth = Math.floor((width - 20) / tabs.length);
-    tabs.forEach(([tab, label], index) => {
-      this.createButton(10 + tabWidth * index + tabWidth / 2, height - 38, tabWidth - 4, 48, label, 0x2a2d38, () => {
-        this.showTab(tab);
-      }, this.compact ? 11 : 13, false);
+    const tabWidth = Math.floor((width - 20) / BASE_TABS.length);
+    BASE_TABS.forEach((tab, index) => {
+      this.createButton(
+        10 + tabWidth * index + tabWidth / 2,
+        height - 38,
+        tabWidth - 4,
+        48,
+        tab.label,
+        0x2a2d38,
+        () => this.showTab(tab.id),
+        this.compact ? 11 : 13,
+        false
+      );
     });
   }
 
   private showTab(tab: BaseTab): void {
     this.panel.removeAll(true);
     this.save = loadSave();
-    const { width, height } = this.scale;
+    const { width } = this.scale;
     const panelHeight = this.panelBottom - this.panelTop;
     const panelBg = this.add.rectangle(width / 2, this.panelTop + panelHeight / 2, width - 34, panelHeight, 0x30281f, 0.96)
       .setStrokeStyle(2, 0x8b6338, 0.9);
@@ -98,71 +121,144 @@ export class BaseScene extends Phaser.Scene {
     if (tab === "map") this.showMap();
     if (tab === "requests") this.showRequests();
     if (tab === "shop") this.showShop();
+    if (tab === "codex") this.showCodex();
     this.refreshStatus();
   }
 
   private showHome(): void {
     const { width, height } = this.scale;
     const buttonWidth = this.getButtonWidth();
-    this.addPanelTitle("今日の清掃メモ");
-    this.addPanelBody("はじまりの地下道 B1F〜B5F\n清掃率80%以上で次の階へ。\nB5Fが最奥地です。", this.panelTop + 66);
-    this.createButton(width / 2, height - 280, buttonWidth, 62, "はじまりの地下道へ", 0xd8913d, () => {
+    this.addPanelTitle(HOME_MEMO.title);
+    this.addInfoRow(this.panelTop + 76, ASSET_KEYS.dungeon.exit, "短期清掃", HOME_MEMO.body.join("\n"));
+    const request = getActiveRequest(this.save);
+    this.addInfoRow(this.panelTop + 174, request.iconKey, `次の依頼: ${request.title}`, `${request.target}\n${request.rewardHint}`);
+
+    this.createButton(width / 2, height - 286, buttonWidth, 58, "はじまりの地下道へ", 0xd8913d, () => {
       this.scene.start("DungeonScene", { floor: 1 });
     }, this.compact ? 16 : 17);
-    this.createButton(width / 2, height - 208, buttonWidth, 52, "操作UIを左右反転", 0x4e6b7d, () => this.toggleControls(), this.compact ? 15 : 17);
-    this.createButton(width / 2, height - 146, buttonWidth, 48, "タイトルへ", 0x2a2d38, () => this.scene.start("TitleScene"), this.compact ? 15 : 17);
-    this.setMessage("短く潜って素材を持ち帰り、\nショップで道具を整えましょう。");
+    this.createButton(width / 2, height - 222, buttonWidth, 48, "図鑑を見る", 0x5b567d, () => this.showTab("codex"), this.compact ? 15 : 16);
+    this.createButton(width / 2, height - 168, buttonWidth, 44, "操作UIを左右反転", 0x4e6b7d, () => this.toggleControls(), this.compact ? 14 : 15);
+    this.createButton(width / 2, height - 118, buttonWidth, 40, "タイトルへ", 0x2a2d38, () => this.scene.start("TitleScene"), this.compact ? 14 : 15);
+    this.setMessage(HOME_MEMO.message);
   }
 
   private showInventory(): void {
     const capacity = getBagCapacity(this.save.player.bagLevel);
     const count = getInventoryCount(this.save.inventory);
-    const lines = Object.entries(ITEMS)
-      .map(([id, item]) => `${item.name}: ${this.save.inventory[id as ItemId]}個 / 売値${item.sellPrice}G`)
-      .join("\n");
     this.addPanelTitle("持ち物");
-    this.addPanelBody(`バッグ ${count}/${capacity}\n\n${lines}`, this.panelTop + 62);
-    this.setMessage("素材は売上や、\n道具の生産に使います。");
+    this.addPanelText(this.scale.width / 2, this.panelTop + 58, `バッグ ${count}/${capacity}`, {
+      fontSize: this.compact ? 14 : 15,
+      color: "#ffe0a3",
+      bold: true
+    });
+
+    Object.values(ITEMS).forEach((item, index) => {
+      const amount = this.save.inventory[item.id];
+      const y = this.panelTop + 100 + index * (this.compact ? 48 : 52);
+      this.addInfoRow(
+        y,
+        item.iconKey,
+        `${item.name} x${amount} / 売値 ${item.sellPrice}G`,
+        `${item.description}\n用途: ${item.useText}`,
+        this.compact ? 34 : 38
+      );
+    });
+    this.setMessage("素材は売却だけでなく、強化や生産の理由になります。");
   }
 
   private showMap(): void {
     this.addPanelTitle("マップ");
-    this.addPanelBody(
-      "はじまりの地下道\n\nB1F → B2F → B3F → B4F → B5F\n最奥地\n\n出撃ごとに、開始位置・残骸・\n危険物の配置が変わります。",
-      this.panelTop + 62
-    );
-    this.setMessage("v1ではこの地下道を、\n短く気持ちよく磨きます。");
+    this.addInfoRow(this.panelTop + 78, MAP_INFO.iconKey, MAP_INFO.title, MAP_INFO.note, 44);
+    MAP_INFO.rows.forEach((row, index) => {
+      this.addPanelText(46, this.panelTop + 142 + index * 34, row, {
+        fontSize: this.compact ? 12 : 14,
+        align: "left",
+        originX: 0,
+        width: this.scale.width - 92
+      });
+    });
+    this.setMessage("v1ではこの地下道を短く気持ちよく磨き込みます。");
   }
 
   private showRequests(): void {
-    const next = this.save.progress.runs < 1 ? "初回の清掃で素材を3個持ち帰る" : "B5Fまで進み、危険物を1体片付ける";
+    const active = getActiveRequest(this.save);
     this.addPanelTitle("依頼");
-    this.addPanelBody(`今の目標\n${next}\n\n図鑑メモ\nモンスター、素材、宝、\nプレイヤー成長を確認します。`, this.panelTop + 62);
-    this.setMessage("依頼は次の一回で\n狙うことだけを示します。");
+    this.addInfoRow(this.panelTop + 78, active.iconKey, active.title, `${active.target}\n${active.rewardHint}`, 44);
+
+    this.addPanelText(this.scale.width / 2, this.panelTop + 158, "依頼リスト", {
+      fontSize: this.compact ? 14 : 16,
+      color: "#ffe0a3",
+      bold: true
+    });
+    const visibleRequests = [active, ...this.getUpcomingRequests(active.title)].slice(0, 4);
+    visibleRequests.forEach((request, index) => {
+      const marker = request.title === active.title ? "進行中" : "次候補";
+      this.addPanelText(46, this.panelTop + 194 + index * 46, `${marker}: ${request.title}\n${request.target}`, {
+        fontSize: this.compact ? 12 : 13,
+        align: "left",
+        originX: 0,
+        width: this.scale.width - 92
+      });
+    });
+
+    this.createButton(this.scale.width / 2, this.panelBottom - 38, this.getButtonWidth(), 42, "図鑑メモを見る", 0x5b567d, () => this.showTab("codex"), this.compact ? 14 : 15);
+    this.setMessage("依頼は次の一回で狙うことだけを示します。");
+  }
+
+  private showCodex(): void {
+    this.addPanelTitle("図鑑メモ");
+    this.addPanelText(this.scale.width / 2, this.panelTop + 58, "収集済みは詳細表示、未収集はヒントだけ表示します。", {
+      fontSize: this.compact ? 12 : 13,
+      color: "#ffe0a3"
+    });
+
+    CODEX_SECTIONS.forEach((section, index) => {
+      const y = this.panelTop + 98 + index * (this.compact ? 76 : 82);
+      const visibleEntries = section.entries.map((entry) => entry.reveal(this.save) ? `${entry.name}: ${entry.text}` : "未収集: 地下道で記録を増やそう");
+      this.addInfoRow(y, section.iconKey, section.title, visibleEntries.slice(0, 2).join("\n"), this.compact ? 34 : 38);
+    });
+    this.setMessage("本制作グラフィック追加後も、図鑑は同じアセットキーで差し替えます。");
   }
 
   private showShop(): void {
-    const { width, height } = this.scale;
-    const buttonWidth = this.getButtonWidth();
-    const fontSize = this.compact ? 13 : 15;
-    this.addPanelTitle("ショップ", this.panelTop + 22);
-    this.createButton(width / 2, this.panelTop + 76, buttonWidth, 44, `ほうき強化 ${getBroomUpgradeCost(this.save.player.broomLevel)}G`, 0x6f9345, () => this.spendGold("broom"), fontSize);
-    this.createButton(width / 2, this.panelTop + 128, buttonWidth, 44, `バッグ強化 ${getBagUpgradeCost(this.save.player.bagLevel)}G`, 0x4f7f96, () => this.spendGold("bag"), fontSize);
-    this.createButton(width / 2, this.panelTop + 180, buttonWidth, 44, `追い払い強化 ${getAttackUpgradeCost(this.save.player.attackLevel)}G`, 0x9b4350, () => this.spendGold("attack"), fontSize);
-    this.createButton(width / 2, this.panelTop + 232, buttonWidth, 44, `スタミナ強化 ${getStaminaUpgradeCost(this.save.player.staminaLevel)}G`, 0x5e8f58, () => this.spendGold("stamina"), fontSize);
-    this.createButton(width / 2, height - 214, buttonWidth, 44, "強化ほうき生産 石材2 木片2", 0x8b6338, () => this.craft("broom"), fontSize);
-    this.createButton(width / 2, height - 160, buttonWidth, 44, "作業道具生産 金属片1 木片2", 0x8b6338, () => this.craft("weapon"), fontSize);
-    this.setMessage("強化は清掃速度、容量、\n危険物対処、行動継続に直結します。");
+    this.addPanelTitle("ショップ", this.panelTop + 24);
+    SHOP_ENTRIES.forEach((entry, index) => {
+      this.createShopEntry(entry, this.panelTop + 66 + index * (this.compact ? 54 : 58));
+    });
+    this.setMessage("強化は清掃速度、容量、危険物対処、行動継続に直結します。");
   }
 
-  private spendGold(kind: "broom" | "bag" | "attack" | "stamina"): void {
-    const costs = {
-      broom: getBroomUpgradeCost(this.save.player.broomLevel),
-      bag: getBagUpgradeCost(this.save.player.bagLevel),
-      attack: getAttackUpgradeCost(this.save.player.attackLevel),
-      stamina: getStaminaUpgradeCost(this.save.player.staminaLevel)
-    };
-    const cost = costs[kind];
+  private getUpcomingRequests(activeTitle: string): RequestDefinition[] {
+    return REQUESTS.filter((request) => request.title !== activeTitle);
+  }
+
+  private createShopEntry(entry: ShopEntry, y: number): void {
+    const { width } = this.scale;
+    const buttonWidth = this.getButtonWidth();
+    const icon = createAssetIcon(this, width / 2 - buttonWidth / 2 + 24, y, this.compact ? 28 : 32, entry.iconKey);
+    const label = entry.type === "upgrade"
+      ? `${entry.title} Lv.${entry.getLevel(this.save)}  ${entry.getCost(this.save)}G`
+      : `${entry.title}  ${entry.isCrafted(this.save) ? "生産済" : this.formatNeeds(entry.needs)}`;
+    const button = this.createButton(width / 2, y, buttonWidth, this.compact ? 48 : 52, label, entry.color, () => {
+      if (entry.type === "upgrade") this.spendGold(entry.kind);
+      if (entry.type === "craft") this.craft(entry.kind);
+    }, this.compact ? 12 : 13, true, -8);
+    const description = this.add.text(width / 2 - buttonWidth / 2 + 48, y + (this.compact ? 13 : 15), entry.description, {
+      fontFamily: "sans-serif",
+      fontSize: this.compact ? "9px" : "10px",
+      color: "#f3efe8",
+      align: "left",
+      wordWrap: { width: buttonWidth - 64, useAdvancedWrap: true }
+    }).setOrigin(0, 0);
+    this.panel.add([icon, description]);
+    button.setDepth(button.depth - 1);
+  }
+
+  private spendGold(kind: UpgradeKind): void {
+    const entry = SHOP_ENTRIES.find((candidate) => candidate.type === "upgrade" && candidate.kind === kind);
+    if (!entry || entry.type !== "upgrade") return;
+
+    const cost = entry.getCost(this.save);
     if (this.save.player.money < cost) {
       this.setMessage(`あと ${cost - this.save.player.money}G 必要です。`);
       return;
@@ -173,29 +269,30 @@ export class BaseScene extends Phaser.Scene {
     if (kind === "attack") this.save.player.attackLevel += 1;
     if (kind === "stamina") this.save.player.staminaLevel += 1;
     saveGame(this.save);
-    this.setMessage("道具を整えました。\n次の清掃が少し楽になります。");
+    this.setMessage(`${entry.title}を行いました。次の清掃が少し楽になります。`);
     this.showTab("shop");
   }
 
-  private craft(kind: "broom" | "weapon"): void {
-    const needs: Partial<Record<ItemId, number>> = kind === "broom" ? { stone: 2, wood: 2 } : { metal: 1, wood: 2 };
-    const already = kind === "broom" ? this.save.player.craftedBroom : this.save.player.craftedWeapon;
-    if (already) {
+  private craft(kind: CraftKind): void {
+    const entry = SHOP_ENTRIES.find((candidate) => candidate.type === "craft" && candidate.kind === kind);
+    if (!entry || entry.type !== "craft") return;
+
+    if (entry.isCrafted(this.save)) {
       this.setMessage("もう生産済みです。");
       return;
     }
-    const missing = Object.entries(needs).find(([id, count]) => this.save.inventory[id as ItemId] < (count ?? 0));
+    const missing = Object.entries(entry.needs).find(([id, count]) => this.save.inventory[id as ItemId] < (count ?? 0));
     if (missing) {
       this.setMessage(`${ITEMS[missing[0] as ItemId].name}が足りません。`);
       return;
     }
-    Object.entries(needs).forEach(([id, count]) => {
+    Object.entries(entry.needs).forEach(([id, count]) => {
       this.save.inventory[id as ItemId] -= count ?? 0;
     });
     if (kind === "broom") this.save.player.craftedBroom = true;
     if (kind === "weapon") this.save.player.craftedWeapon = true;
     saveGame(this.save);
-    this.setMessage(kind === "broom" ? "強化ほうきを生産しました。" : "作業道具を生産しました。");
+    this.setMessage(`${entry.title}が完了しました。`);
     this.showTab("shop");
   }
 
@@ -220,18 +317,19 @@ export class BaseScene extends Phaser.Scene {
     color: number,
     onClick: () => void,
     fontSize = 17,
-    addToPanel = true
-  ): void {
+    addToPanel = true,
+    labelOffsetY = 0
+  ): Phaser.GameObjects.Rectangle {
     const button = this.add.rectangle(x, y, width, height, color, 1)
       .setStrokeStyle(2, 0xffd08a, 0.72)
       .setInteractive({ useHandCursor: true });
-    const text = this.add.text(x, y, label, {
+    const text = this.add.text(x, y + labelOffsetY, label, {
       fontFamily: "sans-serif",
       fontSize: `${fontSize}px`,
       color: "#fff4df",
       fontStyle: "700",
       align: "center",
-      wordWrap: { width: width - 14 }
+      wordWrap: { width: width - 18, useAdvancedWrap: true }
     }).setOrigin(0.5);
     if (addToPanel) this.panel.add([button, text]);
     button.on("pointerdown", () => button.setScale(0.98));
@@ -240,27 +338,53 @@ export class BaseScene extends Phaser.Scene {
       button.setScale(1);
       onClick();
     });
+    return button;
+  }
+
+  private addInfoRow(y: number, iconKey: string, title: string, body: string, iconSize = 40): void {
+    const x = 42;
+    const icon = createAssetIcon(this, x + iconSize / 2, y, iconSize, iconKey);
+    const textX = x + iconSize + 14;
+    this.addPanelText(textX, y - iconSize / 2 + 2, title, {
+      fontSize: this.compact ? 13 : 15,
+      color: "#ffe0a3",
+      align: "left",
+      originX: 0,
+      originY: 0,
+      width: this.scale.width - textX - 32,
+      bold: true
+    });
+    this.addPanelText(textX, y - iconSize / 2 + (this.compact ? 21 : 24), body, {
+      fontSize: this.compact ? 10 : 12,
+      align: "left",
+      originX: 0,
+      originY: 0,
+      width: this.scale.width - textX - 32
+    });
+    this.panel.add(icon);
   }
 
   private addPanelTitle(text: string, y = this.panelTop + 32): void {
-    this.addPanelText(this.scale.width / 2, y, text, this.compact ? 20 : 22, "#f8e7c7");
+    this.addPanelText(this.scale.width / 2, y, text, {
+      fontSize: this.compact ? 20 : 22,
+      color: "#f8e7c7",
+      bold: true
+    });
   }
 
-  private addPanelBody(text: string, y: number): void {
-    this.addPanelText(this.scale.width / 2, y, text, this.compact ? 14 : 16, "#f3efe8", 0);
-  }
-
-  private addPanelText(x: number, y: number, text: string, fontSize: number, color: string, originY = 0.5): void {
+  private addPanelText(x: number, y: number, text: string, options: PanelTextOptions = {}): Phaser.GameObjects.Text {
+    const fontSize = options.fontSize ?? (this.compact ? 14 : 16);
     const label = this.add.text(x, y, text, {
       fontFamily: "sans-serif",
       fontSize: `${fontSize}px`,
-      color,
-      align: "center",
-      fontStyle: fontSize >= 20 ? "700" : "400",
-      lineSpacing: this.compact ? 7 : 8,
-      wordWrap: { width: this.scale.width - 58, useAdvancedWrap: true }
-    }).setOrigin(0.5, originY);
+      color: options.color ?? "#f3efe8",
+      align: options.align ?? "center",
+      fontStyle: options.bold ? "700" : "400",
+      lineSpacing: this.compact ? 4 : 5,
+      wordWrap: { width: options.width ?? this.scale.width - 58, useAdvancedWrap: true }
+    }).setOrigin(options.originX ?? 0.5, options.originY ?? 0.5);
     this.panel.add(label);
+    return label;
   }
 
   private refreshStatus(): void {
@@ -273,8 +397,14 @@ export class BaseScene extends Phaser.Scene {
     );
   }
 
+  private formatNeeds(needs: Partial<Record<ItemId, number>>): string {
+    return Object.entries(needs)
+      .map(([id, count]) => `${ITEMS[id as ItemId].name}${count}`)
+      .join(" ");
+  }
+
   private getButtonWidth(): number {
-    return Math.min(292, this.scale.width - 56);
+    return Math.min(316, this.scale.width - 56);
   }
 
   private setMessage(text: string): void {
