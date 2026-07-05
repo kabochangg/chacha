@@ -194,7 +194,7 @@ export class ActionControls {
     if (mode === "exit") {
       this.cleanButton.setFillStyle(0x4d8f6a, 0.92);
       this.cleanButton.setStrokeStyle(3, 0xc6ffd0, 0.95);
-      this.cleanLabel.setText("帰る");
+      this.cleanLabel.setText("帰還");
       this.cleanLabel.setColor("#f8fff0");
       return;
     }

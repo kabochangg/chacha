@@ -121,7 +121,7 @@ export const PLACEHOLDER_ASSETS: Record<string, AssetPlaceholder> = {
   [ASSET_KEYS.ui.map]: { key: ASSET_KEYS.ui.map, category: "ui", label: "図", color: 0x4f6f8a, accent: 0xbfd8ff, shape: "square" },
   [ASSET_KEYS.ui.request]: { key: ASSET_KEYS.ui.request, category: "ui", label: "依", color: 0x7a5d3a, accent: 0xf4d29a, shape: "square" },
   [ASSET_KEYS.ui.shop]: { key: ASSET_KEYS.ui.shop, category: "ui", label: "店", color: 0x7e4e42, accent: 0xffc2a3, shape: "badge" },
-  [ASSET_KEYS.ui.codex]: { key: ASSET_KEYS.ui.codex, category: "ui", label: "録", color: 0x5b567d, accent: 0xd7d0ff, shape: "badge" },
+  [ASSET_KEYS.ui.codex]: { key: ASSET_KEYS.ui.codex, category: "ui", label: "鑑", color: 0x5b567d, accent: 0xd7d0ff, shape: "badge" },
   [ASSET_KEYS.ui.stamina]: { key: ASSET_KEYS.ui.stamina, category: "ui", label: "気", color: 0x50785c, accent: 0xb9efc8, shape: "circle" },
   [ASSET_KEYS.ui.attack]: { key: ASSET_KEYS.ui.attack, category: "ui", label: "払", color: 0x8e4e55, accent: 0xffb0ba, shape: "diamond" },
   [ASSET_KEYS.item.stone]: { key: ASSET_KEYS.item.stone, category: "item", label: "石", color: 0x8a7a61, accent: 0xd8c5a3, shape: "diamond" },

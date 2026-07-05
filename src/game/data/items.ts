@@ -24,7 +24,7 @@ export const ITEMS: Record<ItemId, ItemData> = {
     id: "wood",
     name: "木片",
     sellPrice: 3,
-    description: "壊れた木箱や古い支柱から拾える乾いた木片。",
+    description: "壊れた木箱や古い柱から拾える乾いた木片。",
     useText: "ほうき生産、作業道具生産",
     iconKey: ASSET_KEYS.item.wood
   },

@@ -43,6 +43,7 @@ type MaterialObject = Phaser.GameObjects.Image & {
   itemId: ItemId;
   collected: boolean;
   baseScale: number;
+  shadow: Phaser.GameObjects.Ellipse;
 };
 
 type EnemyObject = Phaser.GameObjects.Rectangle & {
@@ -90,11 +91,11 @@ type HudBar = {
 };
 
 const DEBRIS_KINDS: DebrisKind[] = [
-  { name: "小石の山", hp: 1, item: "stone", color: 0x8a7a61, width: 28, height: 18, cleanValue: 5 },
-  { name: "粘液の跡", hp: 2, item: "slime", color: 0x5fae79, width: 32, height: 20, cleanValue: 10 },
-  { name: "壊れた木箱", hp: 2, item: "wood", color: 0x7d5430, width: 34, height: 25, cleanValue: 10 },
-  { name: "焦げた灰", hp: 3, item: "ash", color: 0x4c4a4d, width: 38, height: 22, cleanValue: 15 },
-  { name: "壊れた宝箱", hp: 3, item: "metal", color: 0xa67536, width: 40, height: 28, cleanValue: 15 }
+  { name: "小石の山", hp: 1, item: "stone", color: 0x8a7a61, width: 30, height: 20, cleanValue: 5 },
+  { name: "粘液の跡", hp: 2, item: "slime", color: 0x5fae79, width: 36, height: 22, cleanValue: 10 },
+  { name: "壊れた木箱", hp: 2, item: "wood", color: 0x7d5430, width: 38, height: 27, cleanValue: 10 },
+  { name: "焦げた灰", hp: 3, item: "ash", color: 0x4c4a4d, width: 40, height: 24, cleanValue: 15 },
+  { name: "壊れた宝箱", hp: 3, item: "metal", color: 0xa67536, width: 44, height: 31, cleanValue: 15 }
 ];
 
 const DEBRIS_TEXTURES: Record<ItemId, { full: string; half: string }> = {
@@ -323,7 +324,7 @@ export class DungeonScene extends Phaser.Scene {
         this.add.rectangle(x * TILE + TILE / 2, y * TILE + TILE / 2, TILE - 2, TILE - 2, color);
         this.add.image(x * TILE + TILE / 2, y * TILE + TILE / 2, ASSET_KEYS.dungeon.floorStone)
           .setDisplaySize(TILE, TILE)
-          .setAlpha(0.32)
+          .setAlpha(0.24)
           .setDepth(0);
       }
     }
@@ -379,9 +380,10 @@ export class DungeonScene extends Phaser.Scene {
   private addWall(walls: Phaser.Physics.Arcade.StaticGroup, tileX: number, tileY: number): void {
     const wall = this.add.rectangle(tileX * TILE + TILE / 2, tileY * TILE + TILE / 2, TILE, TILE, 0x413427)
       .setStrokeStyle(2, 0x69513a, 0.8)
-      .setAlpha(0.18);
+      .setAlpha(0.12);
     this.add.image(wall.x, wall.y, ASSET_KEYS.dungeon.wallStone)
       .setDisplaySize(TILE + 3, TILE + 3)
+      .setAlpha(0.9)
       .setDepth(5);
     walls.add(wall);
     this.blockedTiles.add(`${tileX},${tileY}`);
@@ -392,10 +394,17 @@ export class DungeonScene extends Phaser.Scene {
 
   private addDebris(tileX: number, tileY: number, kind: DebrisKind): void {
     const textures = DEBRIS_TEXTURES[kind.item];
-    const object = this.add.image(tileX * TILE + TILE / 2, tileY * TILE + TILE / 2, textures.full)
+    const x = tileX * TILE + TILE / 2;
+    const y = tileY * TILE + TILE / 2;
+    this.add.ellipse(x, y + 13, kind.width + 16, 12, 0x190b0c, 0.34)
+      .setDepth(15);
+    this.add.ellipse(x, y, kind.width + 18, kind.height + 16, kind.color, 0.1)
+      .setStrokeStyle(1, 0xf2d49b, 0.16)
+      .setDepth(15);
+    const object = this.add.image(x, y, textures.full)
       .setAngle(Phaser.Math.Between(-12, 12))
       .setDepth(16) as DebrisObject;
-    const baseScale = Math.min((kind.width + 18) / object.width, (kind.height + 16) / object.height);
+    const baseScale = Math.min((kind.width + 20) / object.width, (kind.height + 18) / object.height);
     object.setScale(baseScale);
     this.physics.add.existing(object);
     object.body.setImmovable(true);
@@ -429,13 +438,13 @@ export class DungeonScene extends Phaser.Scene {
     const y = tileY * TILE + TILE / 2;
     const textures = ENEMY_TEXTURES[dropItem];
     const shadow = this.add.ellipse(0, 14, 42, 16, 0x190b0c, 0.38);
-    const glow = this.add.ellipse(0, 1, 43, 35, 0xff7b74, 0.2).setStrokeStyle(2, 0xffe0a8, 0.54);
+    const glow = this.add.ellipse(0, 1, 46, 37, 0xff7b74, 0.24).setStrokeStyle(2, 0xffe0a8, 0.58);
     const core = this.add.image(0, 0, textures.idle);
     const visualBaseScale = Math.min(44 / core.width, 42 / core.height);
     core.setScale(visualBaseScale);
-    const warning = this.add.image(0, -30, ASSET_KEYS.effect.alertMark)
+    const warning = this.add.image(0, -32, ASSET_KEYS.effect.alertMark)
       .setVisible(false);
-    const warningBaseScale = Math.min(14 / warning.width, 30 / warning.height);
+    const warningBaseScale = Math.min(17 / warning.width, 34 / warning.height);
     warning.setScale(warningBaseScale);
     const visual = this.add.container(x, y, [shadow, glow, core, warning]).setDepth(24);
     const vision = this.add.graphics().setDepth(20);
@@ -717,14 +726,21 @@ export class DungeonScene extends Phaser.Scene {
     const x = this.player.x + this.lastFacing.x * 38;
     const y = this.player.y + this.lastFacing.y * 38;
     const arc = this.add.graphics().setDepth(42);
-    arc.lineStyle(7, 0xffd58f, 0.9);
+    arc.lineStyle(9, 0x6aa2cf, 0.34);
     arc.beginPath();
-    arc.arc(x, y, 28, this.lastFacing.angle() - 0.85, this.lastFacing.angle() + 0.85, false);
+    arc.arc(x, y, 31, this.lastFacing.angle() - 0.9, this.lastFacing.angle() + 0.9, false);
     arc.strokePath();
+    arc.lineStyle(4, 0xffd58f, 0.92);
+    arc.beginPath();
+    arc.arc(x, y, 25, this.lastFacing.angle() - 0.78, this.lastFacing.angle() + 0.78, false);
+    arc.strokePath();
+    this.emitDust(x, y, 0.8, 4);
     this.tweens.add({
       targets: arc,
       alpha: 0,
-      duration: 150,
+      scaleX: 1.12,
+      scaleY: 1.12,
+      duration: 170,
       onComplete: () => arc.destroy()
     });
   }
@@ -751,15 +767,20 @@ export class DungeonScene extends Phaser.Scene {
 
   private drawCleaningRing(x: number, y: number, progress: number): void {
     const end = Phaser.Math.DegToRad(-90 + 360 * Phaser.Math.Clamp(progress, 0, 1));
+    const radius = 27 + Math.sin(this.time.now / 70) * 1.2;
     this.cleaningRing.clear();
-    this.cleaningRing.fillStyle(0xffd58f, 0.12);
-    this.cleaningRing.fillCircle(x, y, 25);
-    this.cleaningRing.lineStyle(5, 0x2a2730, 0.82);
-    this.cleaningRing.strokeCircle(x, y, 25);
-    this.cleaningRing.lineStyle(5, progress > 0 ? 0xffd58f : 0xb08a5a, progress > 0 ? 0.95 : 0.5);
+    this.cleaningRing.fillStyle(0x6aa2cf, 0.1);
+    this.cleaningRing.fillCircle(x, y, radius + 3);
+    this.cleaningRing.lineStyle(6, 0x171722, 0.84);
+    this.cleaningRing.strokeCircle(x, y, radius);
+    this.cleaningRing.lineStyle(6, progress > 0 ? 0xffd58f : 0xb08a5a, progress > 0 ? 0.98 : 0.55);
     this.cleaningRing.beginPath();
-    this.cleaningRing.arc(x, y, 25, Phaser.Math.DegToRad(-90), end, false);
+    this.cleaningRing.arc(x, y, radius, Phaser.Math.DegToRad(-90), end, false);
     this.cleaningRing.strokePath();
+    if (progress > 0.98) {
+      this.cleaningRing.lineStyle(2, 0xf8e7c7, 0.8);
+      this.cleaningRing.strokeCircle(x, y, radius + 7);
+    }
   }
 
   private animateDebrisCleaning(target: DebrisObject, progress: number): void {
@@ -780,10 +801,10 @@ export class DungeonScene extends Phaser.Scene {
       dust.destroy();
     }
     this.cleaningParticles = this.add.particles(0, 0, "dust-speck", {
-      lifespan: 240,
-      speed: { min: 18, max: 58 },
-      scale: { start: 0.7, end: 0 },
-      alpha: { start: 0.55, end: 0 },
+      lifespan: 300,
+      speed: { min: 24, max: 74 },
+      scale: { start: 0.78, end: 0 },
+      alpha: { start: 0.68, end: 0 },
       quantity: 1,
       emitting: false
     }).setDepth(35);
@@ -795,18 +816,23 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private spawnMaterial(x: number, y: number, itemId: ItemId): void {
+    const shadow = this.add.ellipse(x, y + 10, 22, 8, 0x190b0c, 0.34)
+      .setDepth(17);
     const material = this.add.image(x, y, ITEM_TEXTURES[itemId])
       .setDepth(18) as MaterialObject;
     this.physics.add.existing(material);
     material.itemId = itemId;
     material.collected = false;
+    material.shadow = shadow;
     material.baseScale = Math.min(24 / material.width, 24 / material.height);
     material.body.setSize(26, 26);
     this.materials.add(material);
     material.setScale(material.baseScale * 0.25);
-    this.tweens.add({ targets: material, scale: material.baseScale, duration: 120, ease: "Back.easeOut" });
+    shadow.setScale(0.5);
+    this.tweens.add({ targets: material, scale: material.baseScale * 1.08, duration: 130, ease: "Back.easeOut" });
+    this.tweens.add({ targets: shadow, scaleX: 1, scaleY: 1, duration: 130, ease: "Back.easeOut" });
     this.tweens.add({
-      targets: material,
+      targets: [material, shadow],
       y: y - 10,
       duration: 140,
       ease: "Back.easeOut",
@@ -814,6 +840,7 @@ export class DungeonScene extends Phaser.Scene {
       hold: 30,
       onComplete: () => {
         if (material.active) material.setY(y);
+        if (shadow.active) shadow.setY(y + 10);
       }
     });
   }
@@ -833,13 +860,16 @@ export class DungeonScene extends Phaser.Scene {
     this.playTone(760, 0.055, "triangle", 0.045);
     this.showInfo(`${ITEMS[material.itemId].name}を回収`, 420);
     this.tweens.add({
-      targets: material,
+      targets: [material, material.shadow],
       x: this.player.x,
       y: this.player.y,
       scale: 0,
       duration: 120,
       ease: "Sine.easeIn",
-      onComplete: () => material.destroy()
+      onComplete: () => {
+        material.shadow.destroy();
+        material.destroy();
+      }
     });
   }
 
@@ -923,6 +953,34 @@ export class DungeonScene extends Phaser.Scene {
 
   private drawEnemyVision(enemy: EnemyObject): void {
     enemy.vision.clear();
+    const facing = new Phaser.Math.Vector2(enemy.facingX, enemy.facingY);
+    if (facing.lengthSq() < 0.001) facing.set(1, 0);
+    facing.normalize();
+
+    const range = enemy.alerted ? 188 + this.floor * 10 : 154 + this.floor * 8;
+    const halfAngle = enemy.alerted ? 0.58 : 0.48;
+    const baseAngle = facing.angle();
+    const points = [new Phaser.Geom.Point(enemy.x, enemy.y)];
+    const segments = 12;
+    for (let i = 0; i <= segments; i += 1) {
+      const angle = baseAngle - halfAngle + (halfAngle * 2 * i) / segments;
+      const distance = range * (i === 0 || i === segments ? 0.82 : 1);
+      points.push(new Phaser.Geom.Point(
+        enemy.x + Math.cos(angle) * distance,
+        enemy.y + Math.sin(angle) * distance
+      ));
+    }
+
+    const fillColor = enemy.alerted ? 0xdc5c52 : 0xf2c36b;
+    const lineColor = enemy.alerted ? 0xfff2c2 : 0xffe0a3;
+    enemy.vision.fillStyle(fillColor, enemy.alerted ? 0.2 : 0.1);
+    enemy.vision.fillPoints(points, true);
+    enemy.vision.lineStyle(enemy.alerted ? 2 : 1, lineColor, enemy.alerted ? 0.55 : 0.24);
+    enemy.vision.beginPath();
+    enemy.vision.moveTo(enemy.x, enemy.y);
+    for (const point of points.slice(1)) enemy.vision.lineTo(point.x, point.y);
+    enemy.vision.closePath();
+    enemy.vision.strokePath();
   }
 
   private updatePlayerVisual(time: number, input: Phaser.Math.Vector2): void {
