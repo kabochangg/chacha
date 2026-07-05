@@ -56,7 +56,7 @@ export class ActionControls {
       y: dodgeY,
       radius: 29,
       hitRadius: 42,
-      label: "回避",
+      label: "走る",
       fillColor: 0x4e6b7d,
       strokeColor: 0xa7d2e7,
       labelColor: "#eef8ff",

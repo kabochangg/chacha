@@ -87,7 +87,7 @@ export const CODEX_SECTIONS: CodexSection[] = [
     entries: [
       { name: "ほうき", text: "掃除の速さに影響します。一度押して始める掃除が短く済みます。", reveal: () => true },
       { name: "バッグ", text: "持ち帰れる素材数が増えます。長めに潜る理由になります。", reveal: () => true },
-      { name: "追い払い・スタミナ", text: "危険物の片付け速度と、掃除/回避の継続力を伸ばします。", reveal: () => true }
+      { name: "追い払い・スタミナ", text: "危険物の片付け速度と、掃除/走るの継続力を伸ばします。", reveal: () => true }
     ]
   }
 ];
@@ -191,7 +191,7 @@ export const SHOP_ENTRIES: ShopEntry[] = [
     type: "upgrade",
     kind: "stamina",
     title: "スタミナ強化",
-    description: "掃除、回避、追い払いの継続力が上がります。",
+    description: "掃除、走る、追い払いの継続力が上がります。",
     iconKey: ASSET_KEYS.ui.stamina,
     color: 0x5e8f58,
     getCost: (save) => getStaminaUpgradeCost(save.player.staminaLevel),

@@ -58,7 +58,6 @@ type EnemyObject = Phaser.GameObjects.Rectangle & {
   visual: Phaser.GameObjects.Container;
   warning: Phaser.GameObjects.Image;
   core: Phaser.GameObjects.Image;
-  vision: Phaser.GameObjects.Graphics;
   idleTexture: string;
   alertTexture: string;
   visualBaseScale: number;
@@ -419,10 +418,9 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private getEnemyCountForFloor(): number {
-    if (this.floor <= 1) return 0;
-    if (this.floor === 2) return 2;
-    if (this.floor === 3) return Phaser.Math.Between(2, 3);
-    if (this.floor === 4) return Phaser.Math.Between(3, 4);
+    if (this.floor <= 2) return Phaser.Math.Between(2, 3);
+    if (this.floor === 3) return Phaser.Math.Between(2, 4);
+    if (this.floor === 4) return Phaser.Math.Between(3, 5);
     return Phaser.Math.Between(4, 5);
   }
 
@@ -496,7 +494,6 @@ export class DungeonScene extends Phaser.Scene {
     const warningBaseScale = Math.min(17 / warning.width, 34 / warning.height);
     warning.setScale(warningBaseScale);
     const visual = this.add.container(x, y, [shadow, glow, core, warning]).setDepth(24);
-    const vision = this.add.graphics().setDepth(20);
     const enemy = this.add.rectangle(x, y, 32, 28, 0xdc5c52, 0) as EnemyObject;
     this.physics.add.existing(enemy);
     enemy.body.setImmovable(true);
@@ -511,7 +508,6 @@ export class DungeonScene extends Phaser.Scene {
     enemy.visual = visual;
     enemy.warning = warning;
     enemy.core = core;
-    enemy.vision = vision;
     enemy.idleTexture = textures.idle;
     enemy.alertTexture = textures.alert;
     enemy.visualBaseScale = visualBaseScale;
@@ -810,7 +806,6 @@ export class DungeonScene extends Phaser.Scene {
       ease: "Back.easeIn",
       onComplete: () => {
         enemy.visual.destroy();
-        enemy.vision.destroy();
       }
     });
     enemy.destroy();
@@ -1011,7 +1006,6 @@ export class DungeonScene extends Phaser.Scene {
       enemy.warning.setVisible(enemy.alerted);
       enemy.warning.setScale(enemy.warningBaseScale * (1 + Math.max(0, wobble) * 0.18));
       enemy.visual.setAngle(wobble * 2);
-      this.drawEnemyVision(enemy);
       enemy.body.updateFromGameObject();
     }
   }
@@ -1043,38 +1037,6 @@ export class DungeonScene extends Phaser.Scene {
       if (tileX < 0 || tileY < 0 || tileX >= MAP_WIDTH || tileY >= MAP_HEIGHT) return false;
       return !this.blockedTiles.has(`${tileX},${tileY}`);
     });
-  }
-
-  private drawEnemyVision(enemy: EnemyObject): void {
-    enemy.vision.clear();
-    const facing = new Phaser.Math.Vector2(enemy.facingX, enemy.facingY);
-    if (facing.lengthSq() < 0.001) facing.set(1, 0);
-    facing.normalize();
-
-    const range = enemy.alerted ? 188 + this.floor * 10 : 154 + this.floor * 8;
-    const halfAngle = enemy.alerted ? 0.58 : 0.48;
-    const baseAngle = facing.angle();
-    const points = [new Phaser.Geom.Point(enemy.x, enemy.y)];
-    const segments = 12;
-    for (let i = 0; i <= segments; i += 1) {
-      const angle = baseAngle - halfAngle + (halfAngle * 2 * i) / segments;
-      const distance = range * (i === 0 || i === segments ? 0.82 : 1);
-      points.push(new Phaser.Geom.Point(
-        enemy.x + Math.cos(angle) * distance,
-        enemy.y + Math.sin(angle) * distance
-      ));
-    }
-
-    const fillColor = enemy.alerted ? 0xdc5c52 : 0xf2c36b;
-    const lineColor = enemy.alerted ? 0xfff2c2 : 0xffe0a3;
-    enemy.vision.fillStyle(fillColor, enemy.alerted ? 0.2 : 0.1);
-    enemy.vision.fillPoints(points, true);
-    enemy.vision.lineStyle(enemy.alerted ? 2 : 1, lineColor, enemy.alerted ? 0.55 : 0.24);
-    enemy.vision.beginPath();
-    enemy.vision.moveTo(enemy.x, enemy.y);
-    for (const point of points.slice(1)) enemy.vision.lineTo(point.x, point.y);
-    enemy.vision.closePath();
-    enemy.vision.strokePath();
   }
 
   private updatePlayerVisual(time: number, input: Phaser.Math.Vector2): void {

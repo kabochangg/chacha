@@ -6,6 +6,7 @@ import type { RunResult } from "../types";
 
 export class ResultScene extends Phaser.Scene {
   private result!: RunResult;
+  private rewardApplied = false;
 
   constructor() {
     super("ResultScene");
@@ -19,13 +20,6 @@ export class ResultScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const compact = width < 430;
     const save = loadSave();
-
-    save.player.money += this.result.earnedMoney;
-    for (const [id, count] of Object.entries(this.result.inventory)) {
-      save.inventory[id as ItemId] += count;
-    }
-    save.progress.runs += 1;
-    saveGame(save);
 
     this.cameras.main.setBackgroundColor("#181820");
     this.add.rectangle(width / 2, height / 2, width, height, 0x181820);
@@ -46,17 +40,18 @@ export class ResultScene extends Phaser.Scene {
     const inventoryText = this.formatInventory(this.result.inventory);
     const broomCost = getBroomUpgradeCost(save.player.broomLevel);
     const bagCost = getBagUpgradeCost(save.player.bagLevel);
+    const moneyAfterSell = save.player.money + this.result.earnedMoney;
     const nearestUpgrade = Math.min(
-      Math.max(0, broomCost - save.player.money),
-      Math.max(0, bagCost - save.player.money)
+      Math.max(0, broomCost - moneyAfterSell),
+      Math.max(0, bagCost - moneyAfterSell)
     );
-    const nextUpgradeText = nearestUpgrade === 0 ? "強化できます" : `次の強化まで あと${nearestUpgrade}G`;
+    const nextUpgradeText = nearestUpgrade === 0 ? "換金後に強化できます" : `換金後の強化まで あと${nearestUpgrade}G`;
 
     this.add.text(width / 2, compact ? 130 : 190,
       `ランク ${this.result.rank}\n` +
       `清掃率 ${cleanRate}% (${this.result.cleaned}/${this.result.totalDebris})\n` +
       `素材 ${inventoryText}\n` +
-      `売上 ${this.result.earnedMoney}G / 所持金 ${save.player.money}G\n` +
+      `換金見込み ${this.result.earnedMoney}G / 換金後 ${moneyAfterSell}G\n` +
       `${nextUpgradeText}\n` +
       `被ダメ ${this.result.damageTaken} / 時間 ${minutes}:${rest}`,
       {
@@ -69,7 +64,7 @@ export class ResultScene extends Phaser.Scene {
       }
     ).setOrigin(0.5, compact ? 0 : 0.5);
 
-    this.add.text(width / 2, compact ? 372 : 358, this.result.cleared ? "無事に帰還しました。\n今日も床が少しきれいです。" : "途中撤退。\n持ち帰れた分だけ売上になります。", {
+    this.add.text(width / 2, compact ? 372 : 358, this.result.cleared ? "無事に帰還しました。\n素材は換金するか、倉庫へ送れます。" : "途中撤退。\n持ち帰れた素材の扱いを選びましょう。", {
       fontFamily: "sans-serif",
       fontSize: compact ? "16px" : "17px",
       color: "#d7b77e",
@@ -79,15 +74,35 @@ export class ResultScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     const buttonWidth = Math.min(268, width - 74);
-    this.createButton(width / 2, height - 222, buttonWidth, 60, "もう一回行く", 0xd8913d, () => {
+    this.createButton(width / 2, height - 222, buttonWidth, 60, "換金してもう一回", 0xd8913d, () => {
+      this.applyRunReward("sell");
       this.scene.start("DungeonScene");
     });
-    this.createButton(width / 2, height - 150, buttonWidth, 56, "拠点へ戻る", 0x4e6b7d, () => {
+    this.createButton(width / 2, height - 150, buttonWidth, 56, "倉庫へ収納して拠点へ", 0x4e6b7d, () => {
+      this.applyRunReward("store");
       this.scene.start("BaseScene");
     });
-    this.createButton(width / 2, height - 80, buttonWidth, 48, "タイトルへ", 0x2a2d38, () => {
+    this.createButton(width / 2, height - 80, buttonWidth, 48, "保管してタイトル", 0x2a2d38, () => {
+      this.applyRunReward("store");
       this.scene.start("TitleScene");
     });
+  }
+
+  private applyRunReward(mode: "sell" | "store"): void {
+    if (this.rewardApplied) return;
+    this.rewardApplied = true;
+    const save = loadSave();
+
+    if (mode === "sell") {
+      save.player.money += this.result.earnedMoney;
+    } else {
+      for (const [id, count] of Object.entries(this.result.inventory)) {
+        save.inventory[id as ItemId] += count;
+      }
+    }
+
+    save.progress.runs += 1;
+    saveGame(save);
   }
 
   private createButton(
