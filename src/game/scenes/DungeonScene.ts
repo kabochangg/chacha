@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { ITEMS, type ItemId, getInventoryCount, getInventoryValue } from "../data/items";
-import { getBagCapacity, getCleaningPower } from "../data/upgrades";
+import { getAttackPower, getBagCapacity, getCleaningPower, getMaxStamina } from "../data/upgrades";
 import { loadSave, type SaveData } from "../systems/SaveSystem";
 import type { RunResult } from "../types";
 import { ActionControls } from "../ui/ActionControls";
@@ -52,6 +52,10 @@ type EnemyObject = Phaser.GameObjects.Rectangle & {
   visual: Phaser.GameObjects.Container;
   warning: Phaser.GameObjects.Text;
   core: Phaser.GameObjects.Ellipse;
+  vision: Phaser.GameObjects.Graphics;
+  alerted: boolean;
+  facingX: number;
+  facingY: number;
 };
 
 type PlayerVisual = {
@@ -128,14 +132,24 @@ export class DungeonScene extends Phaser.Scene {
   private cleaningParticles?: Phaser.GameObjects.Particles.ParticleEmitter;
   private audioContext?: AudioContext;
   private save!: SaveData;
+  private floor = 1;
+  private maxFloor = 5;
+  private startTile = { x: 2.5, y: 2.5 };
+  private maxStamina = 100;
 
   constructor() {
     super("DungeonScene");
   }
 
+  init(data?: { floor?: number }): void {
+    this.floor = Phaser.Math.Clamp(Number(data?.floor ?? 1), 1, this.maxFloor);
+  }
+
   create(): void {
     this.resetRunState();
     this.save = loadSave();
+    this.maxStamina = getMaxStamina(this.save.player.staminaLevel);
+    this.stamina = this.maxStamina;
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.virtualPad?.destroy();
       this.controls?.destroy();
@@ -171,8 +185,8 @@ export class DungeonScene extends Phaser.Scene {
     this.jKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.J);
     this.escape = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
-    this.virtualPad = new VirtualPad(this);
-    this.controls = new ActionControls(this);
+    this.virtualPad = new VirtualPad(this, this.save.settings.controlLayout);
+    this.controls = new ActionControls(this, this.save.settings.controlLayout);
     this.createHud();
   }
 
@@ -227,7 +241,7 @@ export class DungeonScene extends Phaser.Scene {
       this.decayDebrisProgress(delta);
       this.cleaningRing.clear();
       if (cleaningHeld && this.stamina <= 0) this.showInfo("スタミナ切れ。少し待とう。", 500);
-      this.stamina = Math.min(100, this.stamina + delta * 0.018);
+      this.stamina = Math.min(this.maxStamina, this.stamina + delta * 0.018);
     }
 
     if (this.hp <= 0) {
@@ -287,19 +301,34 @@ export class DungeonScene extends Phaser.Scene {
       [5, 11], [9, 12], [10, 12], [11, 12]
     ].forEach(([x, y]) => this.addWall(walls, x, y));
 
-    const debrisTiles = [
+    const startCandidates = [
+      [2.5, 2.5], [3.5, 8.5], [6.5, 2.5], [2.5, 14.5], [8.5, 15.5]
+    ];
+    const start = Phaser.Utils.Array.GetRandom(startCandidates);
+    this.startTile = { x: start[0], y: start[1] };
+
+    const debrisTiles = Phaser.Utils.Array.Shuffle([
       [3, 3], [7, 3], [12, 3], [15, 4], [2, 6],
       [6, 7], [12, 7], [15, 8], [2, 10], [7, 10],
       [13, 11], [6, 13], [14, 14], [3, 15], [10, 15],
-      [15, 15], [8, 5], [12, 13], [5, 15], [2, 13]
-    ];
-    debrisTiles.forEach(([x, y], index) => this.addDebris(x, y, DEBRIS_KINDS[index % DEBRIS_KINDS.length]));
+      [15, 15], [8, 5], [12, 13], [5, 15], [2, 13], [16, 12],
+      [8, 17], [13, 16], [6, 16], [16, 6]
+    ]).slice(0, 16 + this.floor);
+    debrisTiles.forEach(([x, y], index) => {
+      const kindIndex = (index + this.floor + Phaser.Math.Between(0, DEBRIS_KINDS.length - 1)) % DEBRIS_KINDS.length;
+      this.addDebris(x, y, DEBRIS_KINDS[kindIndex]);
+    });
     this.totalDebris = debrisTiles.length;
 
     this.addTrap(7, 8);
     this.addTrap(13, 5);
-    this.addEnemy(6, 9, "loop", "slime");
-    this.addEnemy(13, 10, "wave", "ash");
+    const enemyTiles = Phaser.Utils.Array.Shuffle([
+      [6, 9], [13, 10], [15, 6], [4, 14], [11, 15], [3, 7], [15, 14]
+    ]);
+    const enemyCount = Phaser.Math.Between(2, 5);
+    enemyTiles.slice(0, enemyCount).forEach(([x, y], index) => {
+      this.addEnemy(x, y, index % 2 === 0 ? "loop" : "wave", index % 2 === 0 ? "slime" : "ash");
+    });
     this.createExit();
   }
 
@@ -356,8 +385,9 @@ export class DungeonScene extends Phaser.Scene {
       fontStyle: "900",
       stroke: "#5d171d",
       strokeThickness: 3
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setVisible(false);
     const visual = this.add.container(x, y, [shadow, glow, core, warning]).setDepth(24);
+    const vision = this.add.graphics().setDepth(20);
     const enemy = this.add.rectangle(x, y, 32, 28, 0xdc5c52, 0) as EnemyObject;
     this.physics.add.existing(enemy);
     enemy.body.setImmovable(true);
@@ -366,12 +396,16 @@ export class DungeonScene extends Phaser.Scene {
     enemy.originY = enemy.y;
     enemy.phase = Phaser.Math.FloatBetween(0, Math.PI * 2);
     enemy.pattern = pattern;
-    enemy.hp = 2;
-    enemy.maxHp = 2;
+    enemy.hp = 2 + Math.floor(this.floor / 3);
+    enemy.maxHp = enemy.hp;
     enemy.dropItem = dropItem;
     enemy.visual = visual;
     enemy.warning = warning;
     enemy.core = core;
+    enemy.vision = vision;
+    enemy.alerted = false;
+    enemy.facingX = 1;
+    enemy.facingY = 0;
     this.enemies.push(enemy);
   }
 
@@ -395,8 +429,8 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private createPlayer(): void {
-    const x = TILE * 2.5;
-    const y = TILE * 2.5;
+    const x = TILE * this.startTile.x;
+    const y = TILE * this.startTile.y;
     const body = this.add.rectangle(x, y, 28, 34, 0xe8c070, 0);
     this.physics.add.existing(body);
     this.player = body as Phaser.GameObjects.Rectangle & { body: Phaser.Physics.Arcade.Body };
@@ -560,11 +594,11 @@ export class DungeonScene extends Phaser.Scene {
       return;
     }
 
-    hit.hp -= 1;
+    hit.hp -= getAttackPower(this.save.player.attackLevel, this.save.player.craftedWeapon);
     this.cameras.main.shake(70, 0.004);
     hit.visual.setScale(1.16);
     this.tweens.add({ targets: hit.visual, scale: 1, duration: 110, ease: "Back.easeOut" });
-    this.showInfo(`モンスターに攻撃 ${Math.max(0, hit.hp)}/${hit.maxHp}`, 500);
+    this.showInfo(`危険物を払う ${Math.max(0, hit.hp)}/${hit.maxHp}`, 500);
     this.playTone(430, 0.05, "square", 0.045);
 
     if (hit.hp <= 0) this.defeatEnemy(hit);
@@ -595,7 +629,7 @@ export class DungeonScene extends Phaser.Scene {
     enemy.body.enable = false;
     this.spawnMaterial(enemy.x, enemy.y, enemy.dropItem);
     this.emitDust(enemy.x, enemy.y, 1, 10);
-    this.showInfo("モンスター撃退。素材が出た!", 800);
+    this.showInfo("危険物を片付けた。素材が残った!", 800);
     this.playTone(720, 0.08, "sine", 0.06);
     this.tweens.add({
       targets: enemy.visual,
@@ -604,7 +638,10 @@ export class DungeonScene extends Phaser.Scene {
       angle: 35,
       duration: 170,
       ease: "Back.easeIn",
-      onComplete: () => enemy.visual.destroy()
+      onComplete: () => {
+        enemy.visual.destroy();
+        enemy.vision.destroy();
+      }
     });
     enemy.destroy();
   }
@@ -740,20 +777,54 @@ export class DungeonScene extends Phaser.Scene {
     for (const enemy of this.enemies) {
       const t = time / 1000;
       const phase = enemy.phase;
+      const wasX = enemy.x;
+      const wasY = enemy.y;
       const xOffset = enemy.pattern === "loop"
         ? Math.sin(t * 1.1 + phase) * 62
         : Math.sin(t * 0.9 + phase) * 84;
       const yOffset = enemy.pattern === "loop"
         ? Math.cos(t * 1.35 + phase) * 44
         : Math.sin(t * 1.8 + phase * 0.7) * 52;
-      enemy.setPosition(enemy.originX + xOffset, enemy.originY + yOffset);
+      const distanceToPlayer = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
+      const toPlayer = new Phaser.Math.Vector2(this.player.x - enemy.x, this.player.y - enemy.y);
+      const facing = new Phaser.Math.Vector2(enemy.facingX, enemy.facingY).normalize();
+      const playerInSight = distanceToPlayer < 160 + this.floor * 10 && toPlayer.clone().normalize().dot(facing) > 0.45;
+      if (playerInSight) enemy.alerted = true;
+
+      if (enemy.alerted && distanceToPlayer < 280) {
+        toPlayer.normalize();
+        enemy.setPosition(enemy.x + toPlayer.x * (0.78 + this.floor * 0.06), enemy.y + toPlayer.y * (0.78 + this.floor * 0.06));
+      } else {
+        enemy.alerted = false;
+        enemy.setPosition(enemy.originX + xOffset, enemy.originY + yOffset);
+      }
+      const dx = enemy.x - wasX;
+      const dy = enemy.y - wasY;
+      if (Math.abs(dx) + Math.abs(dy) > 0.01) {
+        enemy.facingX = dx;
+        enemy.facingY = dy;
+      }
       enemy.visual.setPosition(enemy.x, enemy.y);
       const wobble = Math.sin(time / 150 + phase);
       enemy.core.setScale(1 + wobble * 0.055, 1 - wobble * 0.045);
-      enemy.warning.setScale(1 + Math.max(0, wobble) * 0.12);
+      enemy.warning.setVisible(enemy.alerted);
+      enemy.warning.setScale(1 + Math.max(0, wobble) * 0.18);
       enemy.visual.setAngle(wobble * 2);
+      this.drawEnemyVision(enemy);
       enemy.body.updateFromGameObject();
     }
+  }
+
+  private drawEnemyVision(enemy: EnemyObject): void {
+    const facing = new Phaser.Math.Vector2(enemy.facingX, enemy.facingY);
+    if (facing.lengthSq() < 0.01) facing.set(1, 0);
+    const angle = facing.angle();
+    const range = 132 + this.floor * 10;
+    const color = enemy.alerted ? 0xdc5c52 : 0xf2c36b;
+    enemy.vision.clear();
+    enemy.vision.fillStyle(color, enemy.alerted ? 0.2 : 0.11);
+    enemy.vision.slice(enemy.x, enemy.y, range, angle - 0.42, angle + 0.42, false);
+    enemy.vision.fillPath();
   }
 
   private updatePlayerVisual(time: number, input: Phaser.Math.Vector2): void {
@@ -880,9 +951,9 @@ export class DungeonScene extends Phaser.Scene {
     const inventoryCount = getInventoryCount(this.runInventory);
     const capacity = getBagCapacity(this.save.player.bagLevel);
     const cleanRate = Math.floor(this.getCleanRate() * 100);
-    this.hudText.setText("はじまりの地下道");
+    this.hudText.setText(`はじまりの地下道 B${this.floor}F${this.floor === this.maxFloor ? " 最奥地" : ""}`);
     this.updateHudBar(this.hpBar, this.hp / 100, `HP ${Math.ceil(this.hp)}`);
-    this.updateHudBar(this.staminaBar, this.stamina / 100, `STM ${Math.ceil(this.stamina)}`);
+    this.updateHudBar(this.staminaBar, this.stamina / this.maxStamina, `STM ${Math.ceil(this.stamina)}`);
     this.updateHudBar(this.bagBar, inventoryCount / capacity, `素材 ${inventoryCount}/${capacity}`);
     this.updateHudBar(this.cleanBar, cleanRate / 100, `清掃 ${cleanRate}%`);
 
@@ -891,7 +962,7 @@ export class DungeonScene extends Phaser.Scene {
     } else if (this.exitAvailable && this.time.now >= this.infoLockedUntil) {
       this.infoText.setText("出口が開いた。緑の光へ向かおう。");
     } else if (this.time.now >= this.infoLockedUntil) {
-      this.infoText.setText(`攻撃:J / メニュー:右上 / 清掃80%で出口 (${cleanRate}%)`);
+      this.infoText.setText(`払う:J / メニュー:右上 / 清掃80%で出口 (${cleanRate}%)`);
     }
   }
 
@@ -904,6 +975,11 @@ export class DungeonScene extends Phaser.Scene {
     this.finished = true;
     const cleanRate = this.getCleanRate();
     const earnedMoney = getInventoryValue(this.runInventory);
+    if (cleared && this.floor < this.maxFloor) {
+      this.scene.restart({ floor: this.floor + 1 });
+      return;
+    }
+
     const result: RunResult = {
       cleared,
       retreated,

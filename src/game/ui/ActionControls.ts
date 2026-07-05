@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import type { ControlLayout } from "./VirtualPad";
 
 type PrimaryActionMode = "clean" | "exit";
 
@@ -21,15 +22,17 @@ export class ActionControls {
   private primaryMode: PrimaryActionMode = "clean";
   private destroyed = false;
 
-  constructor(private readonly scene: Phaser.Scene) {
+  constructor(private readonly scene: Phaser.Scene, layout: ControlLayout = "leftStickRightButtons") {
     const { width, height } = scene.scale;
     const topInset = readSafeAreaInset("top");
     const bottomInset = readSafeAreaInset("bottom");
-    const cleanX = width - 76;
+    const actionSideX = layout === "rightStickLeftButtons" ? 76 : width - 76;
+    const secondaryX = layout === "rightStickLeftButtons" ? 156 : width - 156;
+    const cleanX = actionSideX;
     const cleanY = height - Math.max(112, bottomInset + 92);
     const attackX = cleanX;
     const attackY = cleanY - 104;
-    const dodgeX = width - 156;
+    const dodgeX = secondaryX;
     const dodgeY = cleanY - 52;
     const pauseX = width - 40;
     const pauseY = Math.max(42, topInset + 34);
@@ -65,7 +68,7 @@ export class ActionControls {
       y: attackY,
       radius: 31,
       hitRadius: 40,
-      label: "攻撃",
+      label: "払う",
       fillColor: 0x9b4350,
       strokeColor: 0xffb4a6,
       labelColor: "#fff2e8",

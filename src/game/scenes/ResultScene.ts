@@ -20,6 +20,9 @@ export class ResultScene extends Phaser.Scene {
     const save = loadSave();
 
     save.player.money += this.result.earnedMoney;
+    for (const [id, count] of Object.entries(this.result.inventory)) {
+      save.inventory[id as ItemId] += count;
+    }
     save.progress.runs += 1;
     saveGame(save);
 

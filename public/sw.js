@@ -1,4 +1,4 @@
-const CACHE_NAME = "chacha-mvp-v2";
+const CACHE_NAME = "chacha-v1-20260705";
 const APP_SHELL = ["/", "/manifest.json", "/icons/icon.svg"];
 
 self.addEventListener("install", (event) => {

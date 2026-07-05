@@ -6,6 +6,10 @@ export type SaveData = {
     money: number;
     broomLevel: number;
     bagLevel: number;
+    attackLevel: number;
+    staminaLevel: number;
+    craftedBroom: boolean;
+    craftedWeapon: boolean;
   };
   inventory: Record<ItemId, number>;
   progress: {
@@ -17,6 +21,7 @@ export type SaveData = {
     bgmVolume: number;
     seVolume: number;
     controlType: "touch";
+    controlLayout: "leftStickRightButtons" | "rightStickLeftButtons";
   };
 };
 
@@ -28,7 +33,11 @@ export function createDefaultSave(): SaveData {
     player: {
       money: 0,
       broomLevel: 1,
-      bagLevel: 1
+      bagLevel: 1,
+      attackLevel: 1,
+      staminaLevel: 1,
+      craftedBroom: false,
+      craftedWeapon: false
     },
     inventory: {
       stone: 0,
@@ -45,7 +54,8 @@ export function createDefaultSave(): SaveData {
     settings: {
       bgmVolume: 0.5,
       seVolume: 0.7,
-      controlType: "touch"
+      controlType: "touch",
+      controlLayout: "leftStickRightButtons"
     }
   };
 }
@@ -63,7 +73,11 @@ export function loadSave(): SaveData {
       player: {
         money: Number(parsed.player?.money ?? fallback.player.money),
         broomLevel: Number(parsed.player?.broomLevel ?? fallback.player.broomLevel),
-        bagLevel: Number(parsed.player?.bagLevel ?? fallback.player.bagLevel)
+        bagLevel: Number(parsed.player?.bagLevel ?? fallback.player.bagLevel),
+        attackLevel: Number(parsed.player?.attackLevel ?? fallback.player.attackLevel),
+        staminaLevel: Number(parsed.player?.staminaLevel ?? fallback.player.staminaLevel),
+        craftedBroom: Boolean(parsed.player?.craftedBroom ?? fallback.player.craftedBroom),
+        craftedWeapon: Boolean(parsed.player?.craftedWeapon ?? fallback.player.craftedWeapon)
       },
       inventory: {
         stone: Number(parsed.inventory?.stone ?? 0),
@@ -77,7 +91,15 @@ export function loadSave(): SaveData {
         lastPlayedAt: parsed.progress?.lastPlayedAt ?? fallback.progress.lastPlayedAt,
         runs: Number(parsed.progress?.runs ?? 0)
       },
-      settings: fallback.settings
+      settings: {
+        bgmVolume: Number(parsed.settings?.bgmVolume ?? fallback.settings.bgmVolume),
+        seVolume: Number(parsed.settings?.seVolume ?? fallback.settings.seVolume),
+        controlType: "touch",
+        controlLayout:
+          parsed.settings?.controlLayout === "rightStickLeftButtons"
+            ? "rightStickLeftButtons"
+            : "leftStickRightButtons"
+      }
     };
   } catch {
     return createDefaultSave();
