@@ -1007,30 +1007,34 @@ export class DungeonScene extends Phaser.Scene {
     const cleanRate = Math.floor(this.getCleanRate() * 100);
     const capacity = getBagCapacity(this.save.player.bagLevel);
     const materialCount = getInventoryCount(this.runInventory);
-    const panel = this.add.container(width / 2, height / 2).setScrollFactor(0).setDepth(160);
-    const bg = this.add.rectangle(0, 0, width - 44, 360, 0x171722, 0.94).setStrokeStyle(2, 0xe2b56f, 0.8);
-    const title = this.add.text(0, -144, "一時停止", {
+    const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(160);
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const bg = this.add.rectangle(centerX, centerY, width - 44, 380, 0x171722, 0.94)
+      .setStrokeStyle(2, 0xe2b56f, 0.8)
+      .setScrollFactor(0);
+    const title = this.add.text(centerX, centerY - 156, "一時停止", {
       fontFamily: "sans-serif",
-      fontSize: "26px",
+      fontSize: "25px",
       color: "#f8e7c7",
       fontStyle: "700"
-    }).setOrigin(0.5);
-    const text = this.add.text(0, -82,
+    }).setOrigin(0.5).setScrollFactor(0);
+    const text = this.add.text(centerX, centerY - 96,
       `HP ${Math.ceil(this.hp)} / 清掃 ${cleanRate}%\n` +
       `素材 ${materialCount}/${capacity}\n` +
       `${inventoryText}\n` +
       `所持金 ${this.save.player.money}G`,
       {
         fontFamily: "sans-serif",
-        fontSize: "18px",
+        fontSize: "17px",
         color: "#f3efe8",
         align: "center",
-        lineSpacing: 8,
+        lineSpacing: 9,
         wordWrap: { width: width - 86 }
       }
-    ).setOrigin(0.5, 0);
-    const resume = this.createMenuButton(0, 86, "再開", 0xd8913d, () => this.closePauseMenu());
-    const retreat = this.createMenuButton(0, 148, "拠点へ戻る", 0x4e6b7d, () => {
+    ).setOrigin(0.5, 0).setScrollFactor(0);
+    const resume = this.createMenuButton(centerX, centerY + 84, "再開", 0xd8913d, () => this.closePauseMenu());
+    const retreat = this.createMenuButton(centerX, centerY + 150, "拠点へ戻る", 0x4e6b7d, () => {
       this.closePauseMenu();
       this.finished = true;
       this.scene.start("BaseScene");
@@ -1040,20 +1044,30 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private createMenuButton(x: number, y: number, label: string, color: number, onClick: () => void): Phaser.GameObjects.Container {
-    const button = this.add.rectangle(0, 0, 220, 48, color, 1).setStrokeStyle(2, 0xffd08a, 0.75);
-    const text = this.add.text(0, 0, label, {
+    const button = this.add.rectangle(x, y, 220, 48, color, 1)
+      .setStrokeStyle(2, 0xffd08a, 0.75)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+    const text = this.add.text(x, y, label, {
       fontFamily: "sans-serif",
       fontSize: "20px",
       color: "#fff4df",
       fontStyle: "700"
-    }).setOrigin(0.5);
-    const hitArea = this.add.rectangle(0, 0, 240, 58, 0x000000, 0.001)
-      .setInteractive({ useHandCursor: true });
-    const container = this.add.container(x, y, [button, text, hitArea]).setSize(240, 58);
-    hitArea.on("pointerdown", () => container.setScale(0.98));
-    hitArea.on("pointerout", () => container.setScale(1));
-    hitArea.on("pointerup", () => {
-      container.setScale(1);
+    }).setOrigin(0.5).setScrollFactor(0);
+    const container = this.add.container(0, 0, [button, text])
+      .setSize(this.scale.width, this.scale.height)
+      .setScrollFactor(0);
+    button.on("pointerdown", () => {
+      button.setScale(0.98);
+      text.setScale(0.98);
+    });
+    button.on("pointerout", () => {
+      button.setScale(1);
+      text.setScale(1);
+    });
+    button.on("pointerup", () => {
+      button.setScale(1);
+      text.setScale(1);
       onClick();
     });
     return container;

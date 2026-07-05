@@ -56,7 +56,7 @@ export class BaseScene extends Phaser.Scene {
     this.panel = this.add.container(0, 0);
     this.messageText = this.add.text(width / 2, this.compact ? height - 86 : height - 104, "", {
       fontFamily: "sans-serif",
-      fontSize: this.compact ? "14px" : "16px",
+      fontSize: this.compact ? "13px" : "15px",
       color: "#ffe0a3",
       align: "center",
       lineSpacing: 3,
@@ -75,17 +75,17 @@ export class BaseScene extends Phaser.Scene {
 
     this.add.text(width / 2, 24, "勇者のあとしまつ", {
       fontFamily: "sans-serif",
-      fontSize: this.compact ? "22px" : "27px",
+      fontSize: this.compact ? "21px" : "26px",
       color: "#f8e7c7",
       fontStyle: "700"
     }).setOrigin(0.5);
 
     this.statusText = this.add.text(width / 2, this.compact ? 66 : 64, "", {
       fontFamily: "sans-serif",
-      fontSize: this.compact ? "13px" : "16px",
+      fontSize: this.compact ? "12px" : "15px",
       color: "#f3efe8",
       align: "center",
-      lineSpacing: this.compact ? 2 : 5
+      lineSpacing: this.compact ? 4 : 6
     }).setOrigin(0.5);
   }
 
@@ -101,7 +101,7 @@ export class BaseScene extends Phaser.Scene {
         tab.label,
         0x2a2d38,
         () => this.showTab(tab.id),
-        this.compact ? 13 : 15,
+        this.compact ? 12 : 14,
         false
       );
     });
@@ -135,10 +135,10 @@ export class BaseScene extends Phaser.Scene {
 
     this.createButton(width / 2, height - 286, buttonWidth, 58, "はじまりの地下道へ", 0xd8913d, () => {
       this.scene.start("DungeonScene", { floor: 1 });
-    }, this.compact ? 18 : 19);
-    this.createButton(width / 2, height - 222, buttonWidth, 48, "図鑑を見る", 0x5b567d, () => this.showTab("codex"), this.compact ? 17 : 18);
-    this.createButton(width / 2, height - 168, buttonWidth, 44, "操作UIを左右反転", 0x4e6b7d, () => this.toggleControls(), this.compact ? 16 : 17);
-    this.createButton(width / 2, height - 118, buttonWidth, 40, "タイトルへ", 0x2a2d38, () => this.scene.start("TitleScene"), this.compact ? 16 : 17);
+    }, this.compact ? 17 : 18);
+    this.createButton(width / 2, height - 222, buttonWidth, 48, "図鑑を見る", 0x5b567d, () => this.showTab("codex"), this.compact ? 16 : 17);
+    this.createButton(width / 2, height - 168, buttonWidth, 44, "操作UIを左右反転", 0x4e6b7d, () => this.toggleControls(), this.compact ? 15 : 16);
+    this.createButton(width / 2, height - 118, buttonWidth, 40, "タイトルへ", 0x2a2d38, () => this.scene.start("TitleScene"), this.compact ? 15 : 16);
     this.setMessage(HOME_MEMO.message);
   }
 
@@ -147,14 +147,14 @@ export class BaseScene extends Phaser.Scene {
     const count = getInventoryCount(this.save.inventory);
     this.addPanelTitle("持ち物");
     this.addPanelText(this.scale.width / 2, this.panelTop + 58, `バッグ ${count}/${capacity}`, {
-      fontSize: this.compact ? 16 : 17,
+      fontSize: this.compact ? 15 : 16,
       color: "#ffe0a3",
       bold: true
     });
 
     Object.values(ITEMS).forEach((item, index) => {
       const amount = this.save.inventory[item.id];
-      const y = this.panelTop + 100 + index * (this.compact ? 48 : 52);
+      const y = this.panelTop + 100 + index * (this.compact ? 54 : 58);
       this.addInfoRow(
         y,
         item.iconKey,
@@ -171,7 +171,7 @@ export class BaseScene extends Phaser.Scene {
     this.addInfoRow(this.panelTop + 78, MAP_INFO.iconKey, MAP_INFO.title, MAP_INFO.note, 44);
     MAP_INFO.rows.forEach((row, index) => {
       this.addPanelText(46, this.panelTop + 142 + index * 34, row, {
-        fontSize: this.compact ? 14 : 16,
+        fontSize: this.compact ? 13 : 15,
         align: "left",
         originX: 0,
         width: this.scale.width - 92
@@ -186,34 +186,34 @@ export class BaseScene extends Phaser.Scene {
     this.addInfoRow(this.panelTop + 78, active.iconKey, active.title, `${active.target}\n${active.rewardHint}`, 44);
 
     this.addPanelText(this.scale.width / 2, this.panelTop + 158, "依頼リスト", {
-      fontSize: this.compact ? 16 : 18,
+      fontSize: this.compact ? 15 : 17,
       color: "#ffe0a3",
       bold: true
     });
     const visibleRequests = [active, ...this.getUpcomingRequests(active.title)].slice(0, 4);
     visibleRequests.forEach((request, index) => {
       const marker = request.title === active.title ? "進行中" : "次候補";
-      this.addPanelText(46, this.panelTop + 194 + index * 46, `${marker}: ${request.title}\n${request.target}`, {
-        fontSize: this.compact ? 14 : 15,
+      this.addPanelText(46, this.panelTop + 194 + index * 52, `${marker}: ${request.title}\n${request.target}`, {
+        fontSize: this.compact ? 13 : 14,
         align: "left",
         originX: 0,
         width: this.scale.width - 92
       });
     });
 
-    this.createButton(this.scale.width / 2, this.panelBottom - 38, this.getButtonWidth(), 42, "図鑑メモを見る", 0x5b567d, () => this.showTab("codex"), this.compact ? 16 : 17);
+    this.createButton(this.scale.width / 2, this.panelBottom - 38, this.getButtonWidth(), 42, "図鑑メモを見る", 0x5b567d, () => this.showTab("codex"), this.compact ? 15 : 16);
     this.setMessage("依頼は次の一回で狙うことだけを示します。");
   }
 
   private showCodex(): void {
     this.addPanelTitle("図鑑メモ");
     this.addPanelText(this.scale.width / 2, this.panelTop + 58, "収集済みは詳細表示、未収集はヒントだけ表示します。", {
-      fontSize: this.compact ? 14 : 15,
+      fontSize: this.compact ? 13 : 14,
       color: "#ffe0a3"
     });
 
     CODEX_SECTIONS.forEach((section, index) => {
-      const y = this.panelTop + 98 + index * (this.compact ? 76 : 82);
+      const y = this.panelTop + 98 + index * (this.compact ? 84 : 90);
       const visibleEntries = section.entries.map((entry) => entry.reveal(this.save) ? `${entry.name}: ${entry.text}` : "未収集: 地下道で記録を増やそう");
       this.addInfoRow(y, section.iconKey, section.title, visibleEntries.slice(0, 2).join("\n"), this.compact ? 34 : 38);
     });
@@ -223,7 +223,7 @@ export class BaseScene extends Phaser.Scene {
   private showShop(): void {
     this.addPanelTitle("ショップ", this.panelTop + 24);
     SHOP_ENTRIES.forEach((entry, index) => {
-      this.createShopEntry(entry, this.panelTop + 66 + index * (this.compact ? 54 : 58));
+      this.createShopEntry(entry, this.panelTop + 66 + index * (this.compact ? 70 : 70));
     });
     this.setMessage("強化は清掃速度、容量、危険物対処、行動継続に直結します。");
   }
@@ -235,20 +235,21 @@ export class BaseScene extends Phaser.Scene {
   private createShopEntry(entry: ShopEntry, y: number): void {
     const { width } = this.scale;
     const buttonWidth = this.getButtonWidth();
-    const icon = createAssetIcon(this, width / 2 - buttonWidth / 2 + 24, y, this.compact ? 28 : 32, entry.iconKey);
+    const icon = createAssetIcon(this, width / 2 - buttonWidth / 2 + 22, y, this.compact ? 24 : 28, entry.iconKey);
     const label = entry.type === "upgrade"
       ? `${entry.title} Lv.${entry.getLevel(this.save)}  ${entry.getCost(this.save)}G`
       : `${entry.title}  ${entry.isCrafted(this.save) ? "生産済" : this.formatNeeds(entry.needs)}`;
-    const button = this.createButton(width / 2, y, buttonWidth, this.compact ? 48 : 52, label, entry.color, () => {
+    const button = this.createButton(width / 2, y, buttonWidth, this.compact ? 56 : 58, label, entry.color, () => {
       if (entry.type === "upgrade") this.spendGold(entry.kind);
       if (entry.type === "craft") this.craft(entry.kind);
-    }, this.compact ? 14 : 15, true, -8);
-    const description = this.add.text(width / 2 - buttonWidth / 2 + 48, y + (this.compact ? 13 : 15), entry.description, {
+    }, this.compact ? 13 : 14, true, -11);
+    const description = this.add.text(width / 2 - buttonWidth / 2 + 46, y + (this.compact ? 13 : 14), entry.description, {
       fontFamily: "sans-serif",
-      fontSize: this.compact ? "11px" : "12px",
+      fontSize: this.compact ? "9px" : "11px",
       color: "#f3efe8",
       align: "left",
-      wordWrap: { width: buttonWidth - 64, useAdvancedWrap: true }
+      lineSpacing: 2,
+      wordWrap: { width: buttonWidth - 56, useAdvancedWrap: true }
     }).setOrigin(0, 0);
     this.panel.add([icon, description]);
     button.setDepth(button.depth - 1);
@@ -316,7 +317,7 @@ export class BaseScene extends Phaser.Scene {
     label: string,
     color: number,
     onClick: () => void,
-    fontSize = 19,
+    fontSize = 18,
     addToPanel = true,
     labelOffsetY = 0
   ): Phaser.GameObjects.Rectangle {
@@ -346,7 +347,7 @@ export class BaseScene extends Phaser.Scene {
     const icon = createAssetIcon(this, x + iconSize / 2, y, iconSize, iconKey);
     const textX = x + iconSize + 14;
     this.addPanelText(textX, y - iconSize / 2 + 2, title, {
-      fontSize: this.compact ? 15 : 17,
+      fontSize: this.compact ? 14 : 16,
       color: "#ffe0a3",
       align: "left",
       originX: 0,
@@ -355,7 +356,7 @@ export class BaseScene extends Phaser.Scene {
       bold: true
     });
     this.addPanelText(textX, y - iconSize / 2 + (this.compact ? 21 : 24), body, {
-      fontSize: this.compact ? 12 : 14,
+      fontSize: this.compact ? 11 : 13,
       align: "left",
       originX: 0,
       originY: 0,
@@ -366,21 +367,21 @@ export class BaseScene extends Phaser.Scene {
 
   private addPanelTitle(text: string, y = this.panelTop + 32): void {
     this.addPanelText(this.scale.width / 2, y, text, {
-      fontSize: this.compact ? 22 : 24,
+      fontSize: this.compact ? 21 : 23,
       color: "#f8e7c7",
       bold: true
     });
   }
 
   private addPanelText(x: number, y: number, text: string, options: PanelTextOptions = {}): Phaser.GameObjects.Text {
-    const fontSize = options.fontSize ?? (this.compact ? 16 : 18);
+    const fontSize = options.fontSize ?? (this.compact ? 15 : 17);
     const label = this.add.text(x, y, text, {
       fontFamily: "sans-serif",
       fontSize: `${fontSize}px`,
       color: options.color ?? "#f3efe8",
       align: options.align ?? "center",
       fontStyle: options.bold ? "700" : "400",
-      lineSpacing: this.compact ? 4 : 5,
+      lineSpacing: this.compact ? 6 : 7,
       wordWrap: { width: options.width ?? this.scale.width - 58, useAdvancedWrap: true }
     }).setOrigin(options.originX ?? 0.5, options.originY ?? 0.5);
     this.panel.add(label);
@@ -409,6 +410,6 @@ export class BaseScene extends Phaser.Scene {
 
   private setMessage(text: string): void {
     this.messageText.setText(text);
-    this.messageText.setFontSize(this.compact ? 13 : 16);
+    this.messageText.setFontSize(this.compact ? 12 : 15);
   }
 }
