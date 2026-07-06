@@ -519,7 +519,10 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private createExit(): void {
-    this.exitZone = this.add.rectangle((MAP_WIDTH - 2) * TILE + TILE / 2, (MAP_HEIGHT - 3) * TILE + TILE / 2, 40, 50, 0x4d8f6a)
+    const exitTile = this.getRandomExitTile();
+    const exitX = exitTile.x * TILE + TILE / 2;
+    const exitY = exitTile.y * TILE + TILE / 2;
+    this.exitZone = this.add.rectangle(exitX, exitY, 40, 50, 0x4d8f6a)
       .setStrokeStyle(3, 0xa7e8b3, 0.85)
       .setAlpha(0.08);
     this.exitVisual = this.add.image(this.exitZone.x, this.exitZone.y, ASSET_KEYS.dungeon.exit)
@@ -539,6 +542,24 @@ export class DungeonScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.tweens.add({ targets: [this.exitVisual, this.exitArrow, this.exitLabel], y: "-=5", duration: 560, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     this.setExitVisible(false);
+  }
+
+  private getRandomExitTile(): { x: number; y: number } {
+    const candidates = Phaser.Utils.Array.Shuffle([
+      [16, 15], [15, 3], [3, 16], [10, 16], [16, 6],
+      [2, 12], [12, 3], [14, 13], [8, 14], [5, 7]
+    ]);
+    const startX = Math.floor(this.startTile.x);
+    const startY = Math.floor(this.startTile.y);
+    const debrisTiles = new Set(this.debris.map((debris) => `${Math.floor(debris.x / TILE)},${Math.floor(debris.y / TILE)}`));
+    const valid = candidates.find(([x, y]) => {
+      const key = `${x},${y}`;
+      const distanceFromStart = Math.abs(x - startX) + Math.abs(y - startY);
+      return distanceFromStart >= 7 && !this.blockedTiles.has(key) && !debrisTiles.has(key);
+    });
+
+    const [x, y] = valid ?? [MAP_WIDTH - 2, MAP_HEIGHT - 3];
+    return { x, y };
   }
 
   private createPlayer(): void {

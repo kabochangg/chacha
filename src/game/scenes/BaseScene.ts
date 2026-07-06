@@ -14,7 +14,7 @@ import {
   type UpgradeKind
 } from "../data/baseContent";
 import { ASSET_KEYS } from "../data/assets";
-import { ITEMS, type ItemId, getInventoryCount } from "../data/items";
+import { ITEMS, type ItemId, getInventoryCount, getInventoryValue } from "../data/items";
 import { getBagCapacity } from "../data/upgrades";
 import { loadSave, saveGame, type SaveData } from "../systems/SaveSystem";
 import { createAssetIcon } from "../ui/PlaceholderIcon";
@@ -145,8 +145,9 @@ export class BaseScene extends Phaser.Scene {
   private showInventory(): void {
     const capacity = getBagCapacity(this.save.player.bagLevel);
     const count = getInventoryCount(this.save.inventory);
-    this.addPanelTitle("持ち物");
-    this.addPanelText(this.scale.width / 2, this.panelTop + 58, `バッグ ${count}/${capacity}`, {
+    const value = getInventoryValue(this.save.inventory);
+    this.addPanelTitle("持ち物 / 倉庫");
+    this.addPanelText(this.scale.width / 2, this.panelTop + 58, `拠点倉庫 ${count}個 / バッグ容量 ${capacity} / 売却 ${value}G`, {
       fontSize: this.compact ? 15 : 16,
       color: "#ffe0a3",
       bold: true
@@ -163,7 +164,17 @@ export class BaseScene extends Phaser.Scene {
         this.compact ? 34 : 38
       );
     });
-    this.setMessage("素材は売却だけでなく、強化や生産の理由になります。");
+    this.createButton(
+      this.scale.width / 2,
+      this.panelBottom - 38,
+      this.getButtonWidth(),
+      42,
+      value > 0 ? `倉庫素材を売る +${value}G` : "倉庫は空です",
+      value > 0 ? 0xd8913d : 0x2a2d38,
+      () => this.sellStoredMaterials(),
+      this.compact ? 15 : 16
+    );
+    this.setMessage("素材は保管して生産に使うか、倉庫から売って強化費用にできます。");
   }
 
   private showMap(): void {
@@ -201,13 +212,13 @@ export class BaseScene extends Phaser.Scene {
       });
     });
 
-    this.createButton(this.scale.width / 2, this.panelBottom - 38, this.getButtonWidth(), 42, "図鑑メモを見る", 0x5b567d, () => this.showTab("codex"), this.compact ? 15 : 16);
+    this.createButton(this.scale.width / 2, this.panelBottom - 38, this.getButtonWidth(), 42, "図鑑を見る", 0x5b567d, () => this.showTab("codex"), this.compact ? 15 : 16);
     this.setMessage("依頼は次の一回で狙うことだけを示します。");
   }
 
   private showCodex(): void {
-    this.addPanelTitle("図鑑メモ");
-    this.addPanelText(this.scale.width / 2, this.panelTop + 58, "収集済みは詳細表示、未収集はヒントだけ表示します。", {
+    this.addPanelTitle("図鑑");
+    this.addPanelText(this.scale.width / 2, this.panelTop + 58, "モンスター、素材、宝、成長の記録を確認できます。", {
       fontSize: this.compact ? 13 : 14,
       color: "#ffe0a3"
     });
@@ -217,7 +228,7 @@ export class BaseScene extends Phaser.Scene {
       const visibleEntries = section.entries.map((entry) => entry.reveal(this.save) ? `${entry.name}: ${entry.text}` : "未収集: 地下道で記録を増やそう");
       this.addInfoRow(y, section.iconKey, section.title, visibleEntries.slice(0, 2).join("\n"), this.compact ? 34 : 38);
     });
-    this.setMessage("本制作グラフィック追加後も、図鑑は同じアセットキーで差し替えます。");
+    this.setMessage("未収集の項目は、次の清掃で記録を増やす理由になります。");
   }
 
   private showShop(): void {
@@ -295,6 +306,22 @@ export class BaseScene extends Phaser.Scene {
     saveGame(this.save);
     this.setMessage(`${entry.title}が完了しました。`);
     this.showTab("shop");
+  }
+
+  private sellStoredMaterials(): void {
+    const value = getInventoryValue(this.save.inventory);
+    if (value <= 0) {
+      this.setMessage("売れる素材がまだありません。地下道で素材を持ち帰りましょう。");
+      return;
+    }
+
+    Object.keys(this.save.inventory).forEach((id) => {
+      this.save.inventory[id as ItemId] = 0;
+    });
+    this.save.player.money += value;
+    saveGame(this.save);
+    this.setMessage(`倉庫素材を売って ${value}G を受け取りました。`);
+    this.showTab("inventory");
   }
 
   private toggleControls(): void {

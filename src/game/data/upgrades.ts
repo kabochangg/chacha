@@ -11,7 +11,7 @@ export function getMaxStamina(staminaLevel: number): number {
 }
 
 export function getBagCapacity(bagLevel: number): number {
-  return 10 + Math.max(0, bagLevel - 1) * 5;
+  return 40 + Math.max(0, bagLevel - 1) * 10;
 }
 
 export function getBroomUpgradeCost(level: number): number {
