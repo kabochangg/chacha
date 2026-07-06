@@ -15,6 +15,7 @@ const DODGE_SPEED = 430;
 const DODGE_TIME_MS = 130;
 const EXIT_CLEAN_RATE = 0.8;
 const ATTACK_COOLDOWN_MS = 360;
+const MAX_RUN_MATERIAL_DROPS = 40;
 
 type DebrisKind = {
   name: string;
@@ -89,6 +90,16 @@ type HudBar = {
   width: number;
 };
 
+type DungeonRunState = {
+  floor?: number;
+  runInventory?: Record<ItemId, number>;
+  materialDropsSpawned?: number;
+  runStartedAt?: number;
+  damageTaken?: number;
+  cleaned?: number;
+  totalDebris?: number;
+};
+
 const DEBRIS_KINDS: DebrisKind[] = [
   { name: "小石の山", hp: 1, item: "stone", color: 0x8a7a61, width: 30, height: 20, cleanValue: 5 },
   { name: "粘液の跡", hp: 2, item: "slime", color: 0x5fae79, width: 36, height: 22, cleanValue: 10 },
@@ -160,6 +171,7 @@ export class DungeonScene extends Phaser.Scene {
   private totalDebris = 0;
   private cleanScore = 0;
   private runInventory: Record<ItemId, number> = { stone: 0, wood: 0, slime: 0, ash: 0, metal: 0 };
+  private materialDropsSpawned = 0;
   private runStartedAt = 0;
   private lastDamageAt = 0;
   private lastAttackAt = 0;
@@ -181,8 +193,24 @@ export class DungeonScene extends Phaser.Scene {
     super("DungeonScene");
   }
 
-  init(data?: { floor?: number }): void {
+  init(data?: DungeonRunState): void {
     this.floor = Phaser.Math.Clamp(Number(data?.floor ?? 1), 1, this.maxFloor);
+    this.runInventory = this.cloneInventory(data?.runInventory);
+    this.materialDropsSpawned = Number(data?.materialDropsSpawned ?? 0);
+    this.runStartedAt = Number(data?.runStartedAt ?? 0);
+    this.damageTaken = Number(data?.damageTaken ?? 0);
+    this.cleaned = Number(data?.cleaned ?? 0);
+    this.totalDebris = Number(data?.totalDebris ?? 0);
+  }
+
+  private cloneInventory(source?: Partial<Record<ItemId, number>>): Record<ItemId, number> {
+    return {
+      stone: Number(source?.stone ?? 0),
+      wood: Number(source?.wood ?? 0),
+      slime: Number(source?.slime ?? 0),
+      ash: Number(source?.ash ?? 0),
+      metal: Number(source?.metal ?? 0)
+    };
   }
 
   create(): void {
@@ -197,7 +225,7 @@ export class DungeonScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor("#11141a");
     this.physics.world.setBounds(0, 0, MAP_WIDTH * TILE, MAP_HEIGHT * TILE);
-    this.runStartedAt = this.time.now;
+    if (this.runStartedAt <= 0) this.runStartedAt = this.time.now;
 
     const walls = this.physics.add.staticGroup();
     this.materials = this.physics.add.group();
@@ -308,12 +336,7 @@ export class DungeonScene extends Phaser.Scene {
     this.dodgingUntil = 0;
     this.hp = 100;
     this.stamina = 100;
-    this.damageTaken = 0;
-    this.cleaned = 0;
-    this.totalDebris = 0;
     this.cleanScore = 0;
-    this.runInventory = { stone: 0, wood: 0, slime: 0, ash: 0, metal: 0 };
-    this.runStartedAt = 0;
     this.lastDamageAt = 0;
     this.lastAttackAt = 0;
     this.infoLockedUntil = 0;
@@ -367,7 +390,7 @@ export class DungeonScene extends Phaser.Scene {
       const kindIndex = (index + this.floor + Phaser.Math.Between(0, DEBRIS_KINDS.length - 1)) % DEBRIS_KINDS.length;
       this.addDebris(x, y, DEBRIS_KINDS[kindIndex]);
     });
-    this.totalDebris = debrisTiles.length;
+    this.totalDebris += debrisTiles.length;
 
     this.addTrap(7, 8);
     this.addTrap(13, 5);
@@ -833,25 +856,58 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private drawAttackArc(): void {
-    const x = this.player.x + this.lastFacing.x * 38;
-    const y = this.player.y + this.lastFacing.y * 38;
-    const arc = this.add.graphics().setDepth(42);
-    arc.lineStyle(9, 0x6aa2cf, 0.34);
+    const baseAngle = this.lastFacing.angle();
+    const x = this.player.x + this.lastFacing.x * 22;
+    const y = this.player.y + this.lastFacing.y * 22;
+    const arc = this.add.graphics({ x, y }).setDepth(42);
+    const start = baseAngle - 0.98;
+    const end = baseAngle + 0.82;
+    const radius = 42;
+
+    arc.lineStyle(13, 0x18202a, 0.42);
     arc.beginPath();
-    arc.arc(x, y, 31, this.lastFacing.angle() - 0.9, this.lastFacing.angle() + 0.9, false);
+    arc.arc(0, 0, radius + 3, start - 0.06, end + 0.04, false);
     arc.strokePath();
-    arc.lineStyle(4, 0xffd58f, 0.92);
+
+    arc.lineStyle(8, 0x6f8791, 0.46);
     arc.beginPath();
-    arc.arc(x, y, 25, this.lastFacing.angle() - 0.78, this.lastFacing.angle() + 0.78, false);
+    arc.arc(0, 0, radius, start, end, false);
     arc.strokePath();
-    this.emitDust(x, y, 0.8, 4);
+
+    arc.lineStyle(4, 0xd8b26f, 0.86);
+    arc.beginPath();
+    arc.arc(0, 0, radius - 3, start + 0.08, end - 0.08, false);
+    arc.strokePath();
+
+    arc.lineStyle(2, 0xfff1c7, 0.92);
+    arc.beginPath();
+    arc.arc(0, 0, radius - 7, baseAngle - 0.66, baseAngle + 0.48, false);
+    arc.strokePath();
+
+    const tipX = x + Math.cos(end) * (radius - 5);
+    const tipY = y + Math.sin(end) * (radius - 5);
+    const glint = this.add.ellipse(tipX, tipY, 12, 4, 0xfff1c7, 0.78)
+      .setAngle(Phaser.Math.RadToDeg(end))
+      .setDepth(43);
+
+    this.emitDust(
+      this.player.x + this.lastFacing.x * 48,
+      this.player.y + this.lastFacing.y * 48,
+      0.55,
+      3
+    );
     this.tweens.add({
-      targets: arc,
+      targets: [arc, glint],
       alpha: 0,
-      scaleX: 1.12,
-      scaleY: 1.12,
-      duration: 170,
-      onComplete: () => arc.destroy()
+      angle: "+=8",
+      scaleX: 1.08,
+      scaleY: 1.08,
+      duration: 190,
+      ease: "Sine.easeOut",
+      onComplete: () => {
+        arc.destroy();
+        glint.destroy();
+      }
     });
   }
 
@@ -926,6 +982,12 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private spawnMaterial(x: number, y: number, itemId: ItemId): void {
+    if (this.materialDropsSpawned >= MAX_RUN_MATERIAL_DROPS) {
+      this.showInfo("持ち帰れる物資は十分。出口を探そう。", 700);
+      return;
+    }
+    this.materialDropsSpawned += 1;
+
     const shadow = this.add.ellipse(x, y + 10, 22, 8, 0x190b0c, 0.34)
       .setDepth(17);
     const material = this.add.image(x, y, ITEM_TEXTURES[itemId])
@@ -1256,21 +1318,31 @@ export class DungeonScene extends Phaser.Scene {
     const cleanRate = this.getCleanRate();
     const earnedMoney = getInventoryValue(this.runInventory);
     if (cleared && this.floor < this.maxFloor) {
-      this.scene.restart({ floor: this.floor + 1 });
+      this.scene.restart({
+        floor: this.floor + 1,
+        runInventory: this.runInventory,
+        materialDropsSpawned: this.materialDropsSpawned,
+        runStartedAt: this.runStartedAt,
+        damageTaken: this.damageTaken,
+        cleaned: this.cleaned,
+        totalDebris: this.totalDebris
+      });
       return;
     }
 
+    const totalCleanScore = this.totalDebris > 0 ? (this.cleaned / this.totalDebris) * 100 : this.cleanScore;
+    const totalCleanRate = Phaser.Math.Clamp(totalCleanScore / 100, 0, 1);
     const result: RunResult = {
       cleared,
       retreated,
       cleaned: this.cleaned,
       totalDebris: this.totalDebris,
-      cleanScore: this.cleanScore,
+      cleanScore: totalCleanScore,
       damageTaken: this.damageTaken,
       durationMs: Math.floor(this.time.now - this.runStartedAt),
       inventory: this.runInventory,
       earnedMoney,
-      rank: this.getRank(cleared, retreated, cleanRate)
+      rank: this.getRank(cleared, retreated, totalCleanRate)
     };
     this.scene.start("ResultScene", result);
   }
