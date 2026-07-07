@@ -303,7 +303,11 @@ export class DungeonScene extends Phaser.Scene {
 
     if (nearExit && interactPressed) {
       this.playTone(520, 0.08, "sine", 0.05);
-      this.finishRun(true);
+      if (this.floor < this.maxFloor) {
+        this.openExitMenu();
+      } else {
+        this.finishRun(true);
+      }
       return;
     }
 
@@ -1219,10 +1223,55 @@ export class DungeonScene extends Phaser.Scene {
     const resume = this.createMenuButton(centerX, centerY + 124, "再開", 0xd8913d, () => this.closePauseMenu());
     const retreat = this.createMenuButton(centerX, centerY + 186, "拠点へ戻る", 0x4e6b7d, () => {
       this.closePauseMenu();
-      this.finished = true;
-      this.scene.start("BaseScene");
+      this.finishRun(false, true);
     });
     panel.add([bg, title, text, organize, resume, retreat]);
+    this.pauseLayer = panel;
+  }
+
+  private openExitMenu(): void {
+    const { width, height } = this.scale;
+    this.paused = true;
+    this.player.body.setVelocity(0, 0);
+    this.pauseLayer?.destroy();
+
+    const cleanRate = Math.floor(this.getCleanRate() * 100);
+    const capacity = getBagCapacity(this.save.player.bagLevel);
+    const materialCount = getInventoryCount(this.runInventory);
+    const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(160);
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const bg = this.add.rectangle(centerX, centerY, width - 44, 332, 0x171722, 0.96)
+      .setStrokeStyle(2, 0x7ce59a, 0.8)
+      .setScrollFactor(0);
+    const title = this.add.text(centerX, centerY - 132, "出口", {
+      fontFamily: "sans-serif",
+      fontSize: "27px",
+      color: "#f8e7c7",
+      fontStyle: "700"
+    }).setOrigin(0.5).setScrollFactor(0);
+    const text = this.add.text(centerX, centerY - 88,
+      `B${this.floor}Fを片付けました。\n` +
+      `清掃 ${cleanRate}% / 素材 ${materialCount}/${capacity}`,
+      {
+        fontFamily: "sans-serif",
+        fontSize: "17px",
+        color: "#f3efe8",
+        align: "center",
+        lineSpacing: 8,
+        wordWrap: { width: width - 76 }
+      }
+    ).setOrigin(0.5, 0).setScrollFactor(0);
+    const nextFloor = this.createMenuButton(centerX, centerY + 18, "次の階へ", 0xd8913d, () => {
+      this.closePauseMenu();
+      this.continueToNextFloor();
+    });
+    const returnBase = this.createMenuButton(centerX, centerY + 82, "拠点へ戻る", 0x4e6b7d, () => {
+      this.closePauseMenu();
+      this.finishRun(true);
+    });
+    const resume = this.createMenuButton(centerX, centerY + 146, "戻る", 0x2a2d38, () => this.closePauseMenu());
+    panel.add([bg, title, text, nextFloor, returnBase, resume]);
     this.pauseLayer = panel;
   }
 
@@ -1426,18 +1475,6 @@ export class DungeonScene extends Phaser.Scene {
     this.finished = true;
     const cleanRate = this.getCleanRate();
     const earnedMoney = getInventoryValue(this.runInventory);
-    if (cleared && this.floor < this.maxFloor) {
-      this.scene.restart({
-        floor: this.floor + 1,
-        runInventory: this.cloneInventory(this.runInventory),
-        materialDropsSpawned: this.materialDropsSpawned,
-        runStartedAt: this.runStartedAt,
-        damageTaken: this.damageTaken,
-        cleaned: this.cleaned,
-        totalDebris: this.totalDebris
-      });
-      return;
-    }
 
     const totalCleanScore = this.totalDebris > 0 ? (this.cleaned / this.totalDebris) * 100 : this.cleanScore;
     const totalCleanRate = Phaser.Math.Clamp(totalCleanScore / 100, 0, 1);
@@ -1454,6 +1491,19 @@ export class DungeonScene extends Phaser.Scene {
       rank: this.getRank(cleared, retreated, totalCleanRate)
     };
     this.scene.start("ResultScene", result);
+  }
+
+  private continueToNextFloor(): void {
+    this.finished = true;
+    this.scene.restart({
+      floor: this.floor + 1,
+      runInventory: this.cloneInventory(this.runInventory),
+      materialDropsSpawned: this.materialDropsSpawned,
+      runStartedAt: this.runStartedAt,
+      damageTaken: this.damageTaken,
+      cleaned: this.cleaned,
+      totalDebris: this.totalDebris
+    });
   }
 
   private getRank(cleared: boolean, retreated: boolean, cleanRate: number): RunResult["rank"] {
