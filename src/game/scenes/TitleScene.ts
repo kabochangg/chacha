@@ -29,31 +29,31 @@ export class TitleScene extends Phaser.Scene {
 
     this.add.text(width / 2, 72, "勇者のあとしまつ", {
       fontFamily: "sans-serif",
-      fontSize: width < 430 ? "29px" : "34px",
+      fontSize: width < 430 ? "27px" : "32px",
       color: "#f8e7c7",
       fontStyle: "700",
       stroke: "#120b0c",
-      strokeThickness: 6
+      strokeThickness: 3
     }).setOrigin(0.5);
     this.add.text(width / 2, 116, "ダンジョン清掃員の生活", {
       fontFamily: "sans-serif",
       fontSize: "18px",
       color: "#e2b56f",
-      fontStyle: "700",
+      fontStyle: "600",
       stroke: "#120b0c",
-      strokeThickness: 4
+      strokeThickness: 2
     }).setOrigin(0.5);
     this.add.rectangle(width / 2, 410, width - 48, 76, 0x171722, 0.78)
       .setStrokeStyle(2, 0xe2b56f, 0.45);
     this.add.text(width / 2, 410, "残骸を掃除して素材を集め、\n拠点で道具を整えましょう。", {
       fontFamily: "sans-serif",
-      fontSize: "17px",
+      fontSize: "16px",
       color: "#fff4df",
       align: "center",
-      lineSpacing: 8,
+      lineSpacing: 7,
       wordWrap: { width: width - 64 },
       stroke: "#120b0c",
-      strokeThickness: 4
+      strokeThickness: 2
     }).setOrigin(0.5);
 
     this.createButton(width / 2, height - 250, 236, 62, "はじめから", 0xd8913d, "#25170e", () => {
@@ -68,7 +68,7 @@ export class TitleScene extends Phaser.Scene {
       fontSize: "14px",
       color: "#ffe0a3",
       stroke: "#120b0c",
-      strokeThickness: 3
+      strokeThickness: 1
     }).setOrigin(0.5);
   }
 
@@ -78,11 +78,11 @@ export class TitleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     this.add.text(x, y, label, {
       fontFamily: "sans-serif",
-      fontSize: "22px",
+      fontSize: "20px",
       color: labelColor,
-      fontStyle: "700",
+      fontStyle: "600",
       stroke: labelColor === "#25170e" ? "#f7c574" : "#120b0c",
-      strokeThickness: 3
+      strokeThickness: 1
     }).setOrigin(0.5);
     button.on("pointerdown", () => button.setScale(0.98));
     button.on("pointerout", () => button.setScale(1));

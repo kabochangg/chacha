@@ -30,35 +30,35 @@ export class ResultScene extends Phaser.Scene {
       .setStrokeStyle(2, 0xe2b56f, 0.82);
     this.add.text(width / 2, 58, "作業報告", {
       fontFamily: "sans-serif",
-      fontSize: "32px",
+      fontSize: "29px",
       color: "#f8e7c7",
       fontStyle: "700",
       stroke: "#120b0c",
-      strokeThickness: 6
+      strokeThickness: 3
     }).setOrigin(0.5);
 
     this.add.circle(width / 2, 126, 42, rankColor, 0.94)
       .setStrokeStyle(3, 0xffe0a3, 0.92);
     this.add.text(width / 2, 126, this.result.rank, {
       fontFamily: "sans-serif",
-      fontSize: "42px",
+      fontSize: "38px",
       color: "#fff4df",
       fontStyle: "700",
       stroke: "#120b0c",
-      strokeThickness: 6
+      strokeThickness: 3
     }).setOrigin(0.5);
     this.add.text(width / 2, 185,
       `清掃率 ${cleanRate}% (${this.result.cleaned}/${this.result.totalDebris})\n` +
       `売却見込み ${this.result.earnedMoney}G / 被ダメ ${this.result.damageTaken}`,
       {
         fontFamily: "sans-serif",
-        fontSize: "17px",
+        fontSize: "16px",
         color: "#fff4df",
         align: "center",
-        lineSpacing: 8,
+        lineSpacing: 7,
         wordWrap: { width: width - 58 },
         stroke: "#120b0c",
-        strokeThickness: 4
+        strokeThickness: 2
       }
     ).setOrigin(0.5);
     this.add.rectangle(width / 2, 270, width - 70, 88, 0x171722, 0.78)
@@ -66,13 +66,13 @@ export class ResultScene extends Phaser.Scene {
     this.add.image(width / 2 - 116, 270, ASSET_KEYS.player.bag).setDisplaySize(42, 42);
     this.add.text(width / 2 - 82, 270, `回収素材\n${inventoryText}`, {
       fontFamily: "sans-serif",
-      fontSize: "15px",
+      fontSize: "14px",
       color: "#ffe0a3",
       align: "left",
       lineSpacing: 5,
       wordWrap: { width: width - 156 },
       stroke: "#120b0c",
-      strokeThickness: 3
+      strokeThickness: 1
     }).setOrigin(0, 0.5);
 
     this.createButton(width / 2, height - 222, 286, 60, "換金してもう一回", 0xd8913d, () => {
@@ -112,13 +112,13 @@ export class ResultScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     this.add.text(x, y, label, {
       fontFamily: "sans-serif",
-      fontSize: height >= 58 ? "21px" : "19px",
+      fontSize: height >= 58 ? "19px" : "17px",
       color: "#fff4df",
-      fontStyle: "700",
+      fontStyle: "600",
       align: "center",
       wordWrap: { width: width - 18 },
       stroke: "#120b0c",
-      strokeThickness: 4
+      strokeThickness: 1
     }).setOrigin(0.5);
     button.on("pointerdown", () => button.setScale(0.98));
     button.on("pointerout", () => button.setScale(1));

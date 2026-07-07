@@ -671,12 +671,12 @@ export class DungeonScene extends Phaser.Scene {
       .setDepth(90);
     this.hudText = this.add.text(panelX, 12, "", {
       fontFamily: "sans-serif",
-      fontSize: compact ? "16px" : "17px",
+      fontSize: compact ? "15px" : "16px",
       color: "#f8e7c7",
-      fontStyle: "700",
+      fontStyle: "600",
       align: "center",
       stroke: "#120b0c",
-      strokeThickness: 4
+      strokeThickness: 2
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(91);
 
     this.hpBar = this.createHudBar(23, 39, leftBarWidth, "HP", 0xd95a4e);
@@ -686,15 +686,15 @@ export class DungeonScene extends Phaser.Scene {
 
     this.infoText = this.add.text(panelX, compact ? 91 : 86, "", {
       fontFamily: "sans-serif",
-      fontSize: compact ? "15px" : "16px",
+      fontSize: compact ? "14px" : "15px",
       color: "#ffe0a3",
       align: "center",
-      fontStyle: "700",
+      fontStyle: "600",
       backgroundColor: "#171722cc",
       padding: { x: 8, y: 3 },
       wordWrap: { width: width - 70 },
       stroke: "#120b0c",
-      strokeThickness: 3
+      strokeThickness: 1
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(91);
   }
 
@@ -710,11 +710,11 @@ export class DungeonScene extends Phaser.Scene {
       .setDepth(92);
     const text = this.add.text(x + 5, y - 7, label, {
       fontFamily: "sans-serif",
-      fontSize: width < 130 ? "13px" : "14px",
+      fontSize: width < 130 ? "12px" : "13px",
       color: "#fff4df",
-      fontStyle: "700",
+      fontStyle: "600",
       stroke: "#171722",
-      strokeThickness: 2
+      strokeThickness: 1
     }).setOrigin(0, 0).setScrollFactor(0).setDepth(93);
     return { fill, label: text, width: width - 2 };
   }
@@ -1229,9 +1229,11 @@ export class DungeonScene extends Phaser.Scene {
       .setScrollFactor(0);
     const title = this.add.text(centerX, centerY - 186, "一時停止", {
       fontFamily: "sans-serif",
-      fontSize: "25px",
+      fontSize: "23px",
       color: "#f8e7c7",
-      fontStyle: "700"
+      fontStyle: "700",
+      stroke: "#120b0c",
+      strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0);
     const text = this.add.text(centerX, centerY - 128,
       `HP ${Math.ceil(this.hp)} / 清掃 ${cleanRate}%\n` +
@@ -1240,10 +1242,12 @@ export class DungeonScene extends Phaser.Scene {
       `所持金 ${this.save.player.money}G`,
       {
         fontFamily: "sans-serif",
-        fontSize: "17px",
+        fontSize: "16px",
         color: "#f3efe8",
         align: "center",
-        lineSpacing: 9,
+        lineSpacing: 7,
+        stroke: "#120b0c",
+        strokeThickness: 1,
         wordWrap: { width: width - 86 }
       }
     ).setOrigin(0.5, 0).setScrollFactor(0);
@@ -1274,19 +1278,23 @@ export class DungeonScene extends Phaser.Scene {
       .setScrollFactor(0);
     const title = this.add.text(centerX, centerY - 132, "出口", {
       fontFamily: "sans-serif",
-      fontSize: "27px",
+      fontSize: "24px",
       color: "#f8e7c7",
-      fontStyle: "700"
+      fontStyle: "700",
+      stroke: "#120b0c",
+      strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0);
     const text = this.add.text(centerX, centerY - 88,
       `B${this.floor}Fを片付けました。\n` +
       `清掃 ${cleanRate}% / 素材 ${materialCount}/${capacity}`,
       {
         fontFamily: "sans-serif",
-        fontSize: "17px",
+        fontSize: "16px",
         color: "#f3efe8",
         align: "center",
-        lineSpacing: 8,
+        lineSpacing: 7,
+        stroke: "#120b0c",
+        strokeThickness: 1,
         wordWrap: { width: width - 76 }
       }
     ).setOrigin(0.5, 0).setScrollFactor(0);
@@ -1310,11 +1318,11 @@ export class DungeonScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     const text = this.add.text(x, y, label, {
       fontFamily: "sans-serif",
-      fontSize: "20px",
+      fontSize: "18px",
       color: "#fff4df",
-      fontStyle: "700",
+      fontStyle: "600",
       stroke: "#120b0c",
-      strokeThickness: 4
+      strokeThickness: 1
     }).setOrigin(0.5).setScrollFactor(0);
     const container = this.add.container(0, 0, [button, text])
       .setScrollFactor(0);
@@ -1350,15 +1358,19 @@ export class DungeonScene extends Phaser.Scene {
       .setScrollFactor(0);
     const title = this.add.text(centerX, top, `バッグ整理 ${materialCount}/${capacity}`, {
       fontFamily: "sans-serif",
-      fontSize: "23px",
+      fontSize: "20px",
       color: "#f8e7c7",
-      fontStyle: "700"
+      fontStyle: "700",
+      stroke: "#120b0c",
+      strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0);
     const note = this.add.text(centerX, top + 32, "捨てる個数を指定して、拾える空きを作れます。", {
       fontFamily: "sans-serif",
       fontSize: "13px",
       color: "#ffe0a3",
       align: "center",
+      stroke: "#120b0c",
+      strokeThickness: 1,
       wordWrap: { width: width - 54 }
     }).setOrigin(0.5).setScrollFactor(0);
 
@@ -1373,24 +1385,28 @@ export class DungeonScene extends Phaser.Scene {
         .setScrollFactor(0);
       const label = this.add.text(34, rowY - 21, `${item.name} x${count}`, {
         fontFamily: "sans-serif",
-        fontSize: "14px",
+        fontSize: "13px",
         color: "#f3efe8",
-        fontStyle: "700"
+        fontStyle: "600",
+        stroke: "#120b0c",
+        strokeThickness: 1
       }).setOrigin(0, 0.5).setScrollFactor(0);
       const amountText = this.add.text(centerX, rowY - 20, `捨てる: ${amount}`, {
         fontFamily: "sans-serif",
-        fontSize: "13px",
+        fontSize: "12px",
         color: count > 0 ? "#ffe0a3" : "#8c8274",
-        fontStyle: "700"
+        fontStyle: "600",
+        stroke: "#120b0c",
+        strokeThickness: 1
       }).setOrigin(0.5).setScrollFactor(0);
 
       const buttons = [
         this.createOverlayButton(centerX - 72, rowY + 14, 38, 28, "－", count > 0 && amount > 1 ? 0x2a2d38 : 0x1f212b, () => this.changeDiscardAmount(itemId, -1)),
         this.add.text(centerX, rowY + 14, `${amount}`, {
           fontFamily: "sans-serif",
-          fontSize: "15px",
+          fontSize: "14px",
           color: count > 0 ? "#fff4df" : "#8c8274",
-          fontStyle: "700"
+          fontStyle: "600"
         }).setOrigin(0.5).setScrollFactor(0),
         this.createOverlayButton(centerX + 72, rowY + 14, 38, 28, "＋", count > 0 && amount < count ? 0x4e6b7d : 0x1f212b, () => this.changeDiscardAmount(itemId, 1)),
         this.createOverlayButton(width - 72, rowY + 14, 76, 28, "捨てる", count > 0 ? 0x9b4350 : 0x2a2d38, () => this.discardRunItem(itemId))
@@ -1411,11 +1427,11 @@ export class DungeonScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     const text = this.add.text(x, y, label, {
       fontFamily: "sans-serif",
-      fontSize: "12px",
+      fontSize: "11px",
       color: "#fff4df",
-      fontStyle: "700",
+      fontStyle: "600",
       stroke: "#120b0c",
-      strokeThickness: 3
+      strokeThickness: 1
     }).setOrigin(0.5).setScrollFactor(0);
     const container = this.add.container(0, 0, [button, text]).setScrollFactor(0);
     button.on("pointerdown", () => {

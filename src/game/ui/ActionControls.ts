@@ -46,7 +46,7 @@ export class ActionControls {
       fillColor: 0xd8913d,
       strokeColor: 0xffd08a,
       labelColor: "#25170e",
-      fontSize: 21
+      fontSize: 19
     });
     this.cleanButton = cleanControl.button;
     this.cleanLabel = cleanControl.label;
@@ -60,7 +60,7 @@ export class ActionControls {
       fillColor: 0x4e6b7d,
       strokeColor: 0xa7d2e7,
       labelColor: "#eef8ff",
-      fontSize: 17
+      fontSize: 15
     }).button;
 
     this.attackButton = this.createCircleButton({
@@ -72,7 +72,7 @@ export class ActionControls {
       fillColor: 0x9b4350,
       strokeColor: 0xffb4a6,
       labelColor: "#fff2e8",
-      fontSize: 17
+      fontSize: 15
     }).button;
 
     this.pauseButton = this.createRectButton({
@@ -247,9 +247,9 @@ export class ActionControls {
       fontFamily: "sans-serif",
       fontSize: `${config.fontSize}px`,
       color: config.labelColor,
-      fontStyle: "700",
+      fontStyle: "600",
       stroke: config.labelColor === "#25170e" ? "#f7c574" : "#120b0c",
-      strokeThickness: 3
+      strokeThickness: 1
     }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
     return { button, label };
@@ -294,9 +294,9 @@ export class ActionControls {
       fontFamily: "sans-serif",
       fontSize: `${config.fontSize}px`,
       color: config.labelColor,
-      fontStyle: "700",
+      fontStyle: "600",
       stroke: "#120b0c",
-      strokeThickness: 3
+      strokeThickness: 1
     }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
     return button;
