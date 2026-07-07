@@ -233,8 +233,8 @@ export class ActionControls {
     labelColor: string;
     fontSize: number;
   }): { button: Phaser.GameObjects.Arc; label: Phaser.GameObjects.Text } {
-    const button = this.scene.add.circle(config.x, config.y, config.radius, config.fillColor, 0.88)
-      .setStrokeStyle(3, config.strokeColor, 0.9)
+    const button = this.scene.add.circle(config.x, config.y, config.radius, config.fillColor, 0.94)
+      .setStrokeStyle(4, config.strokeColor, 0.96)
       .setScrollFactor(0)
       .setDepth(100);
 
@@ -248,8 +248,8 @@ export class ActionControls {
       fontSize: `${config.fontSize}px`,
       color: config.labelColor,
       fontStyle: "700",
-      stroke: config.labelColor === "#25170e" ? "#f7c574" : "#25303a",
-      strokeThickness: 2
+      stroke: config.labelColor === "#25170e" ? "#f7c574" : "#120b0c",
+      strokeThickness: 3
     }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
     return { button, label };
@@ -274,9 +274,9 @@ export class ActionControls {
       config.width,
       config.height,
       config.fillColor,
-      0.62
+      0.78
     )
-      .setStrokeStyle(2, config.strokeColor, 0.72)
+      .setStrokeStyle(3, config.strokeColor, 0.88)
       .setScrollFactor(0)
       .setDepth(100);
 
@@ -294,7 +294,9 @@ export class ActionControls {
       fontFamily: "sans-serif",
       fontSize: `${config.fontSize}px`,
       color: config.labelColor,
-      fontStyle: "700"
+      fontStyle: "700",
+      stroke: "#120b0c",
+      strokeThickness: 3
     }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
     return button;

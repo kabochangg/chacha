@@ -80,7 +80,7 @@ type FacingDirection = "down" | "left" | "right" | "up";
 
 type TrapObject = {
   body: Phaser.GameObjects.Rectangle;
-  mark: Phaser.GameObjects.Image;
+  visual: Phaser.GameObjects.GameObject;
 };
 
 type HudBar = {
@@ -502,13 +502,37 @@ export class DungeonScene extends Phaser.Scene {
   private addTrap(tileX: number, tileY: number): void {
     const x = tileX * TILE + TILE / 2;
     const y = tileY * TILE + TILE / 2;
-    const trap = this.add.rectangle(x, y, 38, 38, 0xb94035, 0.86)
-      .setStrokeStyle(3, 0xffe0a8, 0.8);
-    const mark = this.add.image(x, y - 2, ASSET_KEYS.effect.alertMark)
-      .setDisplaySize(16, 36)
-      .setDepth(23);
-    this.tweens.add({ targets: [trap, mark], alpha: 0.48, duration: 420, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
-    this.traps.push({ body: trap, mark });
+    const trap = this.add.rectangle(x, y, 38, 38, 0xb94035, 0).setDepth(19);
+    const visual = (tileX + tileY) % 2 === 0 ? this.createPitTrapVisual(x, y) : this.createSpikeTrapVisual(x, y);
+    this.tweens.add({ targets: visual, alpha: 0.68, duration: 520, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    this.traps.push({ body: trap, visual });
+  }
+
+  private createPitTrapVisual(x: number, y: number): Phaser.GameObjects.Container {
+    const shadow = this.add.ellipse(0, 3, 38, 26, 0x09070a, 0.92)
+      .setStrokeStyle(2, 0x8a7a61, 0.72);
+    const rimA = this.add.rectangle(-8, -11, 20, 5, 0x2a2a31, 0.95)
+      .setAngle(-16)
+      .setStrokeStyle(1, 0xd8c5a3, 0.36);
+    const rimB = this.add.rectangle(12, 8, 18, 5, 0x2a2a31, 0.95)
+      .setAngle(-20)
+      .setStrokeStyle(1, 0xd8c5a3, 0.32);
+    const crackA = this.add.rectangle(-18, -1, 13, 2, 0x120b0c, 1).setAngle(24);
+    const crackB = this.add.rectangle(18, -8, 12, 2, 0x120b0c, 1).setAngle(-36);
+    return this.add.container(x, y, [shadow, rimA, rimB, crackA, crackB]).setDepth(20);
+  }
+
+  private createSpikeTrapVisual(x: number, y: number): Phaser.GameObjects.Container {
+    const base = this.add.ellipse(0, 10, 40, 13, 0x190b0c, 0.44);
+    const warningRim = this.add.rectangle(0, 8, 40, 8, 0x5c3d30, 0.72)
+      .setStrokeStyle(1, 0xe2b56f, 0.42);
+    const spikeLeft = this.add.triangle(-14, 4, 0, 18, 8, 18, 4, 0, 0x8d929a, 0.96)
+      .setStrokeStyle(1, 0x2a2a31, 0.95);
+    const spikeCenter = this.add.triangle(0, 4, 0, 18, 8, 18, 4, 0, 0xf1f5ff, 0.96)
+      .setStrokeStyle(1, 0x2a2a31, 0.95);
+    const spikeRight = this.add.triangle(14, 4, 0, 18, 8, 18, 4, 0, 0x8d929a, 0.96)
+      .setStrokeStyle(1, 0x2a2a31, 0.95);
+    return this.add.container(x, y, [base, warningRim, spikeLeft, spikeCenter, spikeRight]).setDepth(20);
   }
 
   private addEnemy(tileX: number, tileY: number, pattern: EnemyObject["pattern"], dropItem: ItemId): void {
@@ -650,7 +674,9 @@ export class DungeonScene extends Phaser.Scene {
       fontSize: compact ? "16px" : "17px",
       color: "#f8e7c7",
       fontStyle: "700",
-      align: "center"
+      align: "center",
+      stroke: "#120b0c",
+      strokeThickness: 4
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(91);
 
     this.hpBar = this.createHudBar(23, 39, leftBarWidth, "HP", 0xd95a4e);
@@ -666,7 +692,9 @@ export class DungeonScene extends Phaser.Scene {
       fontStyle: "700",
       backgroundColor: "#171722cc",
       padding: { x: 8, y: 3 },
-      wordWrap: { width: width - 70 }
+      wordWrap: { width: width - 70 },
+      stroke: "#120b0c",
+      strokeThickness: 3
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(91);
   }
 
@@ -1284,7 +1312,9 @@ export class DungeonScene extends Phaser.Scene {
       fontFamily: "sans-serif",
       fontSize: "20px",
       color: "#fff4df",
-      fontStyle: "700"
+      fontStyle: "700",
+      stroke: "#120b0c",
+      strokeThickness: 4
     }).setOrigin(0.5).setScrollFactor(0);
     const container = this.add.container(0, 0, [button, text])
       .setScrollFactor(0);
@@ -1383,7 +1413,9 @@ export class DungeonScene extends Phaser.Scene {
       fontFamily: "sans-serif",
       fontSize: "12px",
       color: "#fff4df",
-      fontStyle: "700"
+      fontStyle: "700",
+      stroke: "#120b0c",
+      strokeThickness: 3
     }).setOrigin(0.5).setScrollFactor(0);
     const container = this.add.container(0, 0, [button, text]).setScrollFactor(0);
     button.on("pointerdown", () => {

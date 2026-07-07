@@ -21,14 +21,14 @@ export class VirtualPad {
     const x = layout === "rightStickLeftButtons" ? width - sideInset : sideInset;
     this.center.set(x, height - Math.max(86, bottomInset + 76));
 
-    this.base = scene.add.circle(this.center.x, this.center.y, this.radius, 0x1e2430, 0.62)
-      .setStrokeStyle(3, 0xe2b56f, 0.7)
+    this.base = scene.add.circle(this.center.x, this.center.y, this.radius, 0x1e2430, 0.76)
+      .setStrokeStyle(4, 0xe2b56f, 0.88)
       .setScrollFactor(0)
       .setDepth(100)
       .setInteractive(new Phaser.Geom.Circle(this.radius, this.radius, this.radius + 18), Phaser.Geom.Circle.Contains);
 
-    this.knob = scene.add.circle(this.center.x, this.center.y, 24, 0xf2d49b, 0.88)
-      .setStrokeStyle(2, 0x5b3a1f, 0.85)
+    this.knob = scene.add.circle(this.center.x, this.center.y, 24, 0xf2d49b, 0.96)
+      .setStrokeStyle(3, 0x5b3a1f, 0.92)
       .setScrollFactor(0)
       .setDepth(101);
 
