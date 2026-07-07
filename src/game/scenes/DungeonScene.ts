@@ -1184,6 +1184,7 @@ export class DungeonScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.paused = true;
     this.player.body.setVelocity(0, 0);
+    this.pauseLayer?.destroy();
     const inventoryText = this.formatInventory(this.runInventory);
     const cleanRate = Math.floor(this.getCleanRate() * 100);
     const capacity = getBagCapacity(this.save.player.bagLevel);
@@ -1237,7 +1238,6 @@ export class DungeonScene extends Phaser.Scene {
       fontStyle: "700"
     }).setOrigin(0.5).setScrollFactor(0);
     const container = this.add.container(0, 0, [button, text])
-      .setSize(this.scale.width, this.scale.height)
       .setScrollFactor(0);
     button.on("pointerdown", () => {
       button.setScale(0.98);
@@ -1306,11 +1306,14 @@ export class DungeonScene extends Phaser.Scene {
       }).setOrigin(0.5).setScrollFactor(0);
 
       const buttons = [
-        this.createOverlayButton(44, rowY + 14, 38, 28, "-10", 0x2a2d38, () => this.changeDiscardAmount(itemId, -10)),
-        this.createOverlayButton(88, rowY + 14, 34, 28, "-1", 0x2a2d38, () => this.changeDiscardAmount(itemId, -1)),
-        this.createOverlayButton(132, rowY + 14, 34, 28, "+1", 0x4e6b7d, () => this.changeDiscardAmount(itemId, 1)),
-        this.createOverlayButton(178, rowY + 14, 38, 28, "+10", 0x4e6b7d, () => this.changeDiscardAmount(itemId, 10)),
-        this.createOverlayButton(232, rowY + 14, 48, 28, "最大", 0x5b567d, () => this.setDiscardAmount(itemId, count)),
+        this.createOverlayButton(centerX - 72, rowY + 14, 38, 28, "－", count > 0 && amount > 1 ? 0x2a2d38 : 0x1f212b, () => this.changeDiscardAmount(itemId, -1)),
+        this.add.text(centerX, rowY + 14, `${amount}`, {
+          fontFamily: "sans-serif",
+          fontSize: "15px",
+          color: count > 0 ? "#fff4df" : "#8c8274",
+          fontStyle: "700"
+        }).setOrigin(0.5).setScrollFactor(0),
+        this.createOverlayButton(centerX + 72, rowY + 14, 38, 28, "＋", count > 0 && amount < count ? 0x4e6b7d : 0x1f212b, () => this.changeDiscardAmount(itemId, 1)),
         this.createOverlayButton(width - 72, rowY + 14, 76, 28, "捨てる", count > 0 ? 0x9b4350 : 0x2a2d38, () => this.discardRunItem(itemId))
       ];
       panel.add([rowBg, label, amountText, ...buttons]);
