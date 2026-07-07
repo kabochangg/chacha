@@ -15,7 +15,7 @@ const DODGE_SPEED = 430;
 const DODGE_TIME_MS = 130;
 const EXIT_CLEAN_RATE = 0.8;
 const ATTACK_COOLDOWN_MS = 360;
-const MAX_RUN_MATERIAL_DROPS = 40;
+const MAX_RUN_MATERIAL_DROPS = 160;
 
 type DebrisKind = {
   name: string;
@@ -73,7 +73,6 @@ type PlayerVisual = {
   sprite: Phaser.GameObjects.Image;
   bag: Phaser.GameObjects.Image;
   broom: Phaser.GameObjects.Image;
-  directionMark: Phaser.GameObjects.Rectangle;
   parts: Phaser.GameObjects.GameObject[];
 };
 
@@ -132,6 +131,8 @@ const ENEMY_TEXTURES: Record<ItemId, { idle: string; alert: string }> = {
   metal: { idle: ASSET_KEYS.enemy.caveWatcher, alert: ASSET_KEYS.enemy.caveWatcherAlert }
 };
 
+const ITEM_IDS: ItemId[] = ["stone", "wood", "slime", "ash", "metal"];
+
 export class DungeonScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Rectangle & { body: Phaser.Physics.Arcade.Body };
   private playerVisual!: PlayerVisual;
@@ -182,6 +183,7 @@ export class DungeonScene extends Phaser.Scene {
   private cleaningActive = false;
   private cleaningTarget?: DebrisObject;
   private cleaningParticles?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private discardAmounts: Record<ItemId, number> = { stone: 1, wood: 1, slime: 1, ash: 1, metal: 1 };
   private audioContext?: AudioContext;
   private save!: SaveData;
   private floor = 1;
@@ -234,6 +236,7 @@ export class DungeonScene extends Phaser.Scene {
     this.createDustTexture();
 
     this.physics.add.collider(this.player, walls);
+    this.physics.add.collider(this.player, this.debris);
     this.physics.add.overlap(this.player, this.materials, (_, material) => {
       this.collectMaterial(material as MaterialObject);
     });
@@ -348,6 +351,7 @@ export class DungeonScene extends Phaser.Scene {
     this.pauseLayer = undefined;
     this.blockedTiles.clear();
     this.cleaningParticles = undefined;
+    this.discardAmounts = { stone: 1, wood: 1, slime: 1, ash: 1, metal: 1 };
   }
 
   private createDungeon(walls: Phaser.Physics.Arcade.StaticGroup): void {
@@ -609,10 +613,8 @@ export class DungeonScene extends Phaser.Scene {
       .setOrigin(0.5, 0.2);
     const sprite = this.add.image(0, 0, ASSET_KEYS.player.cleaner)
       .setScale(Math.min(33 / 283, 43 / 394));
-    const directionMark = this.add.rectangle(0, -6, 12, 6, 0xf8e7c7, 0.9)
-      .setStrokeStyle(1, 0x3a2a20, 0.72);
-    const root = this.add.container(x, y, [shadow, bag, broom, sprite, directionMark]).setDepth(28);
-    return { root, sprite, bag, broom, directionMark, parts: [bag, broom, sprite, directionMark] };
+    const root = this.add.container(x, y, [shadow, bag, broom, sprite]).setDepth(28);
+    return { root, sprite, bag, broom, parts: [bag, broom, sprite] };
   }
 
   private createBroomVisual(level: number): Phaser.GameObjects.Container {
@@ -1134,7 +1136,6 @@ export class DungeonScene extends Phaser.Scene {
     this.playerVisual.sprite.setTexture(damaged ? ASSET_KEYS.player.cleanerDamage : cleaning ? ASSET_KEYS.player.cleanerClean : moving ? ASSET_KEYS.player.cleanerWalk : ASSET_KEYS.player.cleaner);
     this.playerVisual.sprite.setFlipX(direction === "left");
     this.playerVisual.sprite.setRotation(sway * 0.025);
-    this.updateDirectionMark(direction);
     this.playerVisual.bag.setPosition(-12 - facing.x * 2.2, 5 - facing.y * 1.4 - sway * 0.7);
     if (direction === "up") this.playerVisual.bag.setPosition(0, 8 - sway * 0.7);
     this.playerVisual.broom.setPosition(facing.x * 10, 4 + facing.y * 6);
@@ -1146,23 +1147,6 @@ export class DungeonScene extends Phaser.Scene {
       return this.lastFacing.x < 0 ? "left" : "right";
     }
     return this.lastFacing.y < 0 ? "up" : "down";
-  }
-
-  private updateDirectionMark(direction: FacingDirection): void {
-    const mark = this.playerVisual.directionMark;
-    if (direction === "up") {
-      mark.setPosition(0, -12).setDisplaySize(14, 5).setFillStyle(0x4f5f7c, 0.92).setAlpha(0.92);
-      return;
-    }
-    if (direction === "left") {
-      mark.setPosition(-6, -6).setDisplaySize(6, 9).setFillStyle(0xf8e7c7, 0.9).setAlpha(0.9);
-      return;
-    }
-    if (direction === "right") {
-      mark.setPosition(6, -6).setDisplaySize(6, 9).setFillStyle(0xf8e7c7, 0.9).setAlpha(0.9);
-      return;
-    }
-    mark.setPosition(0, -6).setDisplaySize(12, 6).setFillStyle(0xf8e7c7, 0.9).setAlpha(0.9);
   }
 
   private checkHazards(time: number): void {
@@ -1207,16 +1191,16 @@ export class DungeonScene extends Phaser.Scene {
     const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(160);
     const centerX = width / 2;
     const centerY = height / 2;
-    const bg = this.add.rectangle(centerX, centerY, width - 44, 380, 0x171722, 0.94)
+    const bg = this.add.rectangle(centerX, centerY, width - 44, 442, 0x171722, 0.94)
       .setStrokeStyle(2, 0xe2b56f, 0.8)
       .setScrollFactor(0);
-    const title = this.add.text(centerX, centerY - 156, "一時停止", {
+    const title = this.add.text(centerX, centerY - 186, "一時停止", {
       fontFamily: "sans-serif",
       fontSize: "25px",
       color: "#f8e7c7",
       fontStyle: "700"
     }).setOrigin(0.5).setScrollFactor(0);
-    const text = this.add.text(centerX, centerY - 96,
+    const text = this.add.text(centerX, centerY - 128,
       `HP ${Math.ceil(this.hp)} / 清掃 ${cleanRate}%\n` +
       `素材 ${materialCount}/${capacity}\n` +
       `${inventoryText}\n` +
@@ -1230,13 +1214,14 @@ export class DungeonScene extends Phaser.Scene {
         wordWrap: { width: width - 86 }
       }
     ).setOrigin(0.5, 0).setScrollFactor(0);
-    const resume = this.createMenuButton(centerX, centerY + 84, "再開", 0xd8913d, () => this.closePauseMenu());
-    const retreat = this.createMenuButton(centerX, centerY + 150, "拠点へ戻る", 0x4e6b7d, () => {
+    const organize = this.createMenuButton(centerX, centerY + 62, "バッグ整理", 0x5b567d, () => this.openBagOrganizeMenu());
+    const resume = this.createMenuButton(centerX, centerY + 124, "再開", 0xd8913d, () => this.closePauseMenu());
+    const retreat = this.createMenuButton(centerX, centerY + 186, "拠点へ戻る", 0x4e6b7d, () => {
       this.closePauseMenu();
       this.finished = true;
       this.scene.start("BaseScene");
     });
-    panel.add([bg, title, text, resume, retreat]);
+    panel.add([bg, title, text, organize, resume, retreat]);
     this.pauseLayer = panel;
   }
 
@@ -1268,6 +1253,127 @@ export class DungeonScene extends Phaser.Scene {
       onClick();
     });
     return container;
+  }
+
+  private openBagOrganizeMenu(): void {
+    const { width, height } = this.scale;
+    this.paused = true;
+    this.player.body.setVelocity(0, 0);
+    this.pauseLayer?.destroy();
+
+    const capacity = getBagCapacity(this.save.player.bagLevel);
+    const materialCount = getInventoryCount(this.runInventory);
+    const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(160);
+    const centerX = width / 2;
+    const top = Math.max(86, height / 2 - 270);
+    const bg = this.add.rectangle(centerX, height / 2, width - 28, Math.min(height - 54, 560), 0x171722, 0.96)
+      .setStrokeStyle(2, 0xe2b56f, 0.8)
+      .setScrollFactor(0);
+    const title = this.add.text(centerX, top, `バッグ整理 ${materialCount}/${capacity}`, {
+      fontFamily: "sans-serif",
+      fontSize: "23px",
+      color: "#f8e7c7",
+      fontStyle: "700"
+    }).setOrigin(0.5).setScrollFactor(0);
+    const note = this.add.text(centerX, top + 32, "捨てる個数を指定して、拾える空きを作れます。", {
+      fontFamily: "sans-serif",
+      fontSize: "13px",
+      color: "#ffe0a3",
+      align: "center",
+      wordWrap: { width: width - 54 }
+    }).setOrigin(0.5).setScrollFactor(0);
+
+    panel.add([bg, title, note]);
+    ITEM_IDS.forEach((itemId, index) => {
+      const item = ITEMS[itemId];
+      const count = this.runInventory[itemId];
+      const amount = this.getDiscardAmount(itemId);
+      const rowY = top + 76 + index * 72;
+      const rowBg = this.add.rectangle(centerX, rowY, width - 54, 62, 0x30281f, 0.96)
+        .setStrokeStyle(1, 0x8b6338, 0.72)
+        .setScrollFactor(0);
+      const label = this.add.text(34, rowY - 21, `${item.name} x${count}`, {
+        fontFamily: "sans-serif",
+        fontSize: "14px",
+        color: "#f3efe8",
+        fontStyle: "700"
+      }).setOrigin(0, 0.5).setScrollFactor(0);
+      const amountText = this.add.text(centerX, rowY - 20, `捨てる: ${amount}`, {
+        fontFamily: "sans-serif",
+        fontSize: "13px",
+        color: count > 0 ? "#ffe0a3" : "#8c8274",
+        fontStyle: "700"
+      }).setOrigin(0.5).setScrollFactor(0);
+
+      const buttons = [
+        this.createOverlayButton(44, rowY + 14, 38, 28, "-10", 0x2a2d38, () => this.changeDiscardAmount(itemId, -10)),
+        this.createOverlayButton(88, rowY + 14, 34, 28, "-1", 0x2a2d38, () => this.changeDiscardAmount(itemId, -1)),
+        this.createOverlayButton(132, rowY + 14, 34, 28, "+1", 0x4e6b7d, () => this.changeDiscardAmount(itemId, 1)),
+        this.createOverlayButton(178, rowY + 14, 38, 28, "+10", 0x4e6b7d, () => this.changeDiscardAmount(itemId, 10)),
+        this.createOverlayButton(232, rowY + 14, 48, 28, "最大", 0x5b567d, () => this.setDiscardAmount(itemId, count)),
+        this.createOverlayButton(width - 72, rowY + 14, 76, 28, "捨てる", count > 0 ? 0x9b4350 : 0x2a2d38, () => this.discardRunItem(itemId))
+      ];
+      panel.add([rowBg, label, amountText, ...buttons]);
+    });
+
+    const back = this.createOverlayButton(centerX - 76, height - 58, 112, 44, "戻る", 0x4e6b7d, () => this.openPauseMenu());
+    const resume = this.createOverlayButton(centerX + 76, height - 58, 112, 44, "再開", 0xd8913d, () => this.closePauseMenu());
+    panel.add([back, resume]);
+    this.pauseLayer = panel;
+  }
+
+  private createOverlayButton(x: number, y: number, width: number, height: number, label: string, color: number, onClick: () => void): Phaser.GameObjects.Container {
+    const button = this.add.rectangle(x, y, width, height, color, 1)
+      .setStrokeStyle(1, 0xffd08a, 0.66)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+    const text = this.add.text(x, y, label, {
+      fontFamily: "sans-serif",
+      fontSize: "12px",
+      color: "#fff4df",
+      fontStyle: "700"
+    }).setOrigin(0.5).setScrollFactor(0);
+    const container = this.add.container(0, 0, [button, text]).setScrollFactor(0);
+    button.on("pointerdown", () => {
+      button.setScale(0.96);
+      text.setScale(0.96);
+    });
+    button.on("pointerout", () => {
+      button.setScale(1);
+      text.setScale(1);
+    });
+    button.on("pointerup", () => {
+      button.setScale(1);
+      text.setScale(1);
+      onClick();
+    });
+    return container;
+  }
+
+  private getDiscardAmount(itemId: ItemId): number {
+    const count = this.runInventory[itemId];
+    if (count <= 0) return 0;
+    return Phaser.Math.Clamp(this.discardAmounts[itemId] || 1, 1, count);
+  }
+
+  private setDiscardAmount(itemId: ItemId, amount: number): void {
+    const count = this.runInventory[itemId];
+    this.discardAmounts[itemId] = count <= 0 ? 0 : Phaser.Math.Clamp(amount, 1, count);
+    this.openBagOrganizeMenu();
+  }
+
+  private changeDiscardAmount(itemId: ItemId, delta: number): void {
+    this.setDiscardAmount(itemId, this.getDiscardAmount(itemId) + delta);
+  }
+
+  private discardRunItem(itemId: ItemId): void {
+    const count = this.runInventory[itemId];
+    if (count <= 0) return;
+    const amount = Math.min(this.getDiscardAmount(itemId), count);
+    this.runInventory[itemId] = Math.max(0, count - amount);
+    this.discardAmounts[itemId] = this.runInventory[itemId] > 0 ? Math.min(amount, this.runInventory[itemId]) : 0;
+    this.showInfo(`${ITEMS[itemId].name}を${amount}個捨てた`, 700);
+    this.openBagOrganizeMenu();
   }
 
   private closePauseMenu(): void {
@@ -1320,7 +1426,7 @@ export class DungeonScene extends Phaser.Scene {
     if (cleared && this.floor < this.maxFloor) {
       this.scene.restart({
         floor: this.floor + 1,
-        runInventory: this.runInventory,
+        runInventory: this.cloneInventory(this.runInventory),
         materialDropsSpawned: this.materialDropsSpawned,
         runStartedAt: this.runStartedAt,
         damageTaken: this.damageTaken,
@@ -1340,7 +1446,7 @@ export class DungeonScene extends Phaser.Scene {
       cleanScore: totalCleanScore,
       damageTaken: this.damageTaken,
       durationMs: Math.floor(this.time.now - this.runStartedAt),
-      inventory: this.runInventory,
+      inventory: this.cloneInventory(this.runInventory),
       earnedMoney,
       rank: this.getRank(cleared, retreated, totalCleanRate)
     };
