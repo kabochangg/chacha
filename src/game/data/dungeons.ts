@@ -44,16 +44,16 @@ export const DUNGEONS: Record<DungeonId, DungeonData> = {
     enemyHpBonus: 0,
     trapDamageMultiplier: 1,
     theme: {
-      background: 0x11141a,
-      floorA: 0x24252c,
-      floorB: 0x2a2a31,
-      floorTint: 0xd8c5a3,
-      floorAlpha: 0.24,
-      wallTint: 0x8b6338,
-      wallStroke: 0x69513a,
-      ambient: 0xe2b56f,
-      accent: 0x67b7a8,
-      exitGlow: 0x7ce59a
+      background: 0x050b0f,
+      floorA: 0x162429,
+      floorB: 0x101b20,
+      floorTint: 0x8db7aa,
+      floorAlpha: 0.28,
+      wallTint: 0x31474a,
+      wallStroke: 0x1dfff0,
+      ambient: 0x25f6d4,
+      accent: 0x25f6d4,
+      exitGlow: 0x26ffd9
     }
   },
   moss_waterway: {

@@ -32,12 +32,12 @@ export class BaseScene extends Phaser.Scene {
     saveGame(this.save);
 
     const { width, height } = this.scale;
-    this.cameras.main.setBackgroundColor("#171722");
+    this.cameras.main.setBackgroundColor("#050b0f");
     this.drawBaseBackdrop();
 
-    this.addPanel(width / 2, 58, width - 24, 92, 0x101722, 0.91, 0x67b7a8, 0.32);
-    this.addEdgeFrame(width / 2, 58, width - 24, 92, 0xe2b56f, 0.42);
-    this.add.rectangle(28, 58, 4, 68, 0xe2b56f, 0.58);
+    this.addPanel(width / 2, 58, width - 24, 92, 0x07161a, 0.92, 0x25f6d4, 0.34);
+    this.addEdgeFrame(width / 2, 58, width - 24, 92, 0x25f6d4, 0.34);
+    this.add.rectangle(28, 58, 4, 68, 0x25f6d4, 0.62);
     this.addReadableText(width / 2, 20, "清掃員の拠点", 20, "#f8e7c7", {
       fontStyle: "600",
       origin: [0.5, 0],
@@ -67,15 +67,15 @@ export class BaseScene extends Phaser.Scene {
 
   private drawBaseBackdrop(): void {
     const { width, height } = this.scale;
-    this.add.rectangle(width / 2, height / 2, width, height, 0x171722);
-    this.add.rectangle(width / 2, height / 2, width, height, 0x171311, 0.66);
-    this.add.polygon(width * 0.12, height * 0.34, [0, 0, width * 0.72, -60, width * 0.66, -8, -28, 48], 0x2d3a3f, 0.2);
-    this.add.polygon(width * 0.72, height * 0.78, [0, 0, width * 0.42, -40, width * 0.5, 10, 18, 66], 0x12363b, 0.22);
+    this.add.rectangle(width / 2, height / 2, width, height, 0x050b0f);
+    this.add.rectangle(width / 2, height / 2, width, height, 0x07161a, 0.72);
+    this.add.polygon(width * 0.12, height * 0.34, [0, 0, width * 0.72, -60, width * 0.66, -8, -28, 48], 0x12343a, 0.28);
+    this.add.polygon(width * 0.72, height * 0.78, [0, 0, width * 0.42, -40, width * 0.5, 10, 18, 66], 0x0a2f35, 0.3);
     for (let y = 122; y < height - 118; y += 56) {
-      this.add.rectangle(width / 2, y, width - 32, 1, 0x8b6338, 0.09);
+      this.add.rectangle(width / 2, y, width - 32, 1, 0x25f6d4, 0.07);
     }
-    this.add.ellipse(width * 0.2, 118, 170, 120, 0xf2c36b, 0.055);
-    this.add.ellipse(width * 0.82, height - 156, 180, 120, 0x67b7a8, 0.045);
+    this.add.ellipse(width * 0.24, 118, 170, 120, 0x25f6d4, 0.075);
+    this.add.ellipse(width * 0.82, height - 156, 190, 126, 0x0bb49f, 0.06);
     this.add.image(42, 132, ASSET_KEYS.player.broom)
       .setDisplaySize(28, 76)
       .setAngle(-28)
@@ -98,8 +98,8 @@ export class BaseScene extends Phaser.Scene {
     tabs.forEach(([tab, label], index) => {
       const x = 10 + tabWidth * index + tabWidth / 2;
       const y = height - 38;
-      const button = this.add.rectangle(x, y, tabWidth - 4, 50, 0x151c27, 0.96)
-        .setStrokeStyle(1, 0x4f6470, 0.66)
+      const button = this.add.rectangle(x, y, tabWidth - 4, 50, 0x071219, 0.96)
+        .setStrokeStyle(1, 0x587578, 0.48)
         .setInteractive({ useHandCursor: true });
       const text = this.addReadableText(x, y, label, width < 390 ? 11 : 12, "#f8e7c7", {
         fontStyle: "600",
@@ -125,10 +125,10 @@ export class BaseScene extends Phaser.Scene {
 
     const panelTop = 116;
     const panelHeight = height - 242;
-    const bg = this.addPanel(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, 0x201d19, 0.94, 0x67b7a8, 0.24);
+    const bg = this.addPanel(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, 0x07161a, 0.94, 0x25f6d4, 0.22);
     this.panel.add(bg);
-    this.panel.add(this.createEdgeFrame(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, 0xe2b56f, 0.44));
-    this.panel.add(this.add.rectangle(28, panelTop + 38, 4, 54, 0x67b7a8, 0.55));
+    this.panel.add(this.createEdgeFrame(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, 0x25f6d4, 0.34));
+    this.panel.add(this.add.rectangle(28, panelTop + 38, 4, 54, 0x25f6d4, 0.58));
 
     if (tab === "home") this.showHome();
     if (tab === "inventory") this.showInventory();
@@ -186,9 +186,9 @@ export class BaseScene extends Phaser.Scene {
     ITEM_IDS.forEach((itemId, index) => {
       const item = ITEMS[itemId];
       const y = 174 + index * 54;
-      const row = this.addPanel(width / 2, y, width - 54, 46, 0x111720, 0.72, 0x67b7a8, 0.2);
+      const row = this.addPanel(width / 2, y, width - 54, 46, 0x071219, 0.82, 0x25f6d4, 0.2);
       this.addToPanel(row);
-      this.addToPanel(this.add.rectangle(40, y, 2, 28, 0xe2b56f, 0.36));
+      this.addToPanel(this.add.rectangle(40, y, 2, 28, 0x25f6d4, 0.38));
       this.addToPanel(this.add.image(44, y, item.iconKey).setDisplaySize(24, 24));
       this.addToPanel(this.addReadableText(66, y - 12, `${item.name} x${this.save.inventory[itemId]}`, 14, "#fff4df", {
         fontStyle: "600",
@@ -219,7 +219,7 @@ export class BaseScene extends Phaser.Scene {
       const dungeon = DUNGEONS[dungeonId];
       const unlocked = this.isDungeonUnlocked(dungeonId);
       const y = 186 + index * 74;
-      this.addToPanel(this.addPanel(width / 2, y, width - 58, 58, unlocked ? 0x111720 : 0x161820, 0.78, dungeon.theme.accent, unlocked ? 0.34 : 0.12));
+      this.addToPanel(this.addPanel(width / 2, y, width - 58, 58, unlocked ? 0x071219 : 0x091015, 0.82, dungeon.theme.accent, unlocked ? 0.34 : 0.12));
       this.addToPanel(this.add.rectangle(54, y, 3, 38, unlocked ? dungeon.theme.ambient : 0x4f6470, 0.62));
       this.addToPanel(this.addReadableText(68, y - 13, `${index + 1}. ${dungeon.name}`, 14, unlocked ? "#fff4df" : "#8c8274", {
         fontStyle: "600",
@@ -256,8 +256,8 @@ export class BaseScene extends Phaser.Scene {
       origin: [0.5, 0.5],
       strokeThickness: 1
     }));
-    this.addToPanel(this.addPanel(width / 2, 218, width - 58, 126, 0x111720, 0.76, 0x67b7a8, 0.28));
-    this.addToPanel(this.add.rectangle(54, 218, 3, 96, 0xe2b56f, 0.5));
+    this.addToPanel(this.addPanel(width / 2, 218, width - 58, 126, 0x071219, 0.82, 0x25f6d4, 0.28));
+    this.addToPanel(this.add.rectangle(54, 218, 3, 96, 0x25f6d4, 0.5));
     this.addToPanel(this.addReadableText(width / 2, 190, "今の目標", 16, "#ffe0a3", {
       fontStyle: "600",
       origin: [0.5, 0.5],
@@ -391,10 +391,10 @@ export class BaseScene extends Phaser.Scene {
     onClick: () => void,
     fontSize = 17
   ): void {
-    const button = this.add.rectangle(x, y, width, height, color, 1)
-      .setStrokeStyle(1, 0xe2b56f, 0.58)
+    const button = this.add.rectangle(x, y, width, height, color, 0.92)
+      .setStrokeStyle(1, 0x25f6d4, 0.5)
       .setInteractive({ useHandCursor: true });
-    const rail = this.add.rectangle(x - width / 2 + 5, y, 4, height - 10, 0x67b7a8, 0.56);
+    const rail = this.add.rectangle(x - width / 2 + 5, y, 4, height - 10, 0x25f6d4, 0.62);
     const shine = this.add.rectangle(x, y + height / 2 - 3, width - 22, 1, 0xffffff, 0.12);
     const text = this.addReadableText(x, y, label, fontSize, "#fff4df", {
       fontStyle: "500",
@@ -457,11 +457,11 @@ export class BaseScene extends Phaser.Scene {
   private refreshTabs(): void {
     for (const [tab, button] of this.tabButtons) {
       const active = tab === this.currentTab;
-      button.setFillStyle(active ? 0xb9772c : 0x151c27, active ? 1 : 0.96);
-      button.setStrokeStyle(1, active ? 0xffe0a3 : 0x4f6470, active ? 0.82 : 0.66);
+      button.setFillStyle(active ? 0x073c39 : 0x071219, active ? 0.98 : 0.96);
+      button.setStrokeStyle(1, active ? 0x25f6d4 : 0x587578, active ? 0.86 : 0.48);
       const label = this.tabLabels.get(tab);
-      label?.setColor(active ? "#25170e" : "#f8e7c7");
-      label?.setStroke(active ? "#f7c574" : "#120b0c", active ? 1 : 1);
+      label?.setColor(active ? "#25f6d4" : "#c9d8d4");
+      label?.setStroke("#061113", 1);
     }
   }
 

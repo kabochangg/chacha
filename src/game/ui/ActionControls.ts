@@ -43,9 +43,9 @@ export class ActionControls {
       radius: 42,
       hitRadius: 56,
       label: "掃除",
-      fillColor: 0xd8913d,
-      strokeColor: 0xffd08a,
-      labelColor: "#25170e",
+      fillColor: 0x073c39,
+      strokeColor: 0x25f6d4,
+      labelColor: "#d9fff6",
       fontSize: 19
     });
     this.cleanButton = cleanControl.button;
@@ -57,8 +57,8 @@ export class ActionControls {
       radius: 29,
       hitRadius: 42,
       label: "走る",
-      fillColor: 0x4e6b7d,
-      strokeColor: 0xa7d2e7,
+      fillColor: 0x0b2530,
+      strokeColor: 0x82d8ff,
       labelColor: "#eef8ff",
       fontSize: 15
     }).button;
@@ -69,7 +69,7 @@ export class ActionControls {
       radius: 31,
       hitRadius: 44,
       label: "払う",
-      fillColor: 0x9b4350,
+      fillColor: 0x3b1f2a,
       strokeColor: 0xffb4a6,
       labelColor: "#fff2e8",
       fontSize: 15
@@ -83,20 +83,20 @@ export class ActionControls {
       hitWidth: 58,
       hitHeight: 58,
       label: "II",
-      fillColor: 0x1e2430,
-      strokeColor: 0xe2b56f,
-      labelColor: "#f8e7c7",
+      fillColor: 0x071219,
+      strokeColor: 0x25f6d4,
+      labelColor: "#d9fff6",
       fontSize: 24
     });
 
-    this.cleanButton.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+    this.cleanButton.on("pointerdown", () => {
       this.cleanPressed = true;
       this.cleanButton.setScale(0.94);
       this.cleanButton.setAlpha(1);
       scene.time.delayedCall(110, () => {
         if (this.destroyed) return;
         this.cleanButton.setScale(1);
-        this.cleanButton.setAlpha(this.primaryMode === "exit" ? 0.92 : 0.88);
+        this.cleanButton.setAlpha(this.primaryMode === "exit" ? 0.94 : 0.9);
       });
     });
 
@@ -136,7 +136,7 @@ export class ActionControls {
       this.attackPointerId = null;
       this.cleanPressed = false;
       this.cleanButton.setScale(1);
-      this.cleanButton.setAlpha(0.88);
+      this.cleanButton.setAlpha(0.9);
       this.dodgeButton.setScale(1);
       this.attackButton.setScale(1);
     };
@@ -183,33 +183,33 @@ export class ActionControls {
     this.primaryMode = mode;
 
     if (mode === "exit") {
-      this.cleanButton.setFillStyle(0x4d8f6a, 0.92);
-      this.cleanButton.setStrokeStyle(3, 0xc6ffd0, 0.95);
+      this.cleanButton.setFillStyle(0x0b4c37, 0.94);
+      this.cleanButton.setStrokeStyle(3, 0x8fffe5, 0.95);
       this.cleanLabel.setText("帰還");
       this.cleanLabel.setColor("#f8fff0");
       return;
     }
 
-    this.cleanButton.setFillStyle(0xd8913d, 0.88);
-    this.cleanButton.setStrokeStyle(3, 0xffd08a, 0.9);
+    this.cleanButton.setFillStyle(0x073c39, 0.9);
+    this.cleanButton.setStrokeStyle(3, 0x25f6d4, 0.9);
     this.cleanLabel.setText("掃除");
-    this.cleanLabel.setColor("#25170e");
+    this.cleanLabel.setColor("#d9fff6");
   }
 
   setCleaningActive(active: boolean): void {
     if (this.primaryMode !== "clean") return;
     if (active) {
-      this.cleanButton.setFillStyle(0xf0b24f, 0.98);
-      this.cleanButton.setStrokeStyle(4, 0xfff0b8, 0.98);
+      this.cleanButton.setFillStyle(0x0f6b5d, 0.98);
+      this.cleanButton.setStrokeStyle(4, 0xbffff2, 0.98);
       this.cleanLabel.setText("中断");
-      this.cleanLabel.setColor("#25170e");
+      this.cleanLabel.setColor("#ffffff");
       return;
     }
 
-    this.cleanButton.setFillStyle(0xd8913d, 0.88);
-    this.cleanButton.setStrokeStyle(3, 0xffd08a, 0.9);
+    this.cleanButton.setFillStyle(0x073c39, 0.9);
+    this.cleanButton.setStrokeStyle(3, 0x25f6d4, 0.9);
     this.cleanLabel.setText("掃除");
-    this.cleanLabel.setColor("#25170e");
+    this.cleanLabel.setColor("#d9fff6");
   }
 
   destroy(): void {
@@ -233,8 +233,8 @@ export class ActionControls {
     labelColor: string;
     fontSize: number;
   }): { button: Phaser.GameObjects.Arc; label: Phaser.GameObjects.Text } {
-    const button = this.scene.add.circle(config.x, config.y, config.radius, config.fillColor, 0.94)
-      .setStrokeStyle(4, config.strokeColor, 0.96)
+    const button = this.scene.add.circle(config.x, config.y, config.radius, config.fillColor, 0.9)
+      .setStrokeStyle(3, config.strokeColor, 0.94)
       .setScrollFactor(0)
       .setDepth(100);
 
@@ -247,9 +247,9 @@ export class ActionControls {
       fontFamily: "sans-serif",
       fontSize: `${config.fontSize}px`,
       color: config.labelColor,
-      fontStyle: "600",
-      stroke: config.labelColor === "#25170e" ? "#f7c574" : "#120b0c",
-      strokeThickness: 1
+      fontStyle: "700",
+      stroke: "#061113",
+      strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
     return { button, label };
@@ -274,9 +274,9 @@ export class ActionControls {
       config.width,
       config.height,
       config.fillColor,
-      0.78
+      0.82
     )
-      .setStrokeStyle(3, config.strokeColor, 0.88)
+      .setStrokeStyle(2, config.strokeColor, 0.88)
       .setScrollFactor(0)
       .setDepth(100);
 
@@ -294,9 +294,9 @@ export class ActionControls {
       fontFamily: "sans-serif",
       fontSize: `${config.fontSize}px`,
       color: config.labelColor,
-      fontStyle: "600",
-      stroke: "#120b0c",
-      strokeThickness: 1
+      fontStyle: "700",
+      stroke: "#061113",
+      strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
     return button;

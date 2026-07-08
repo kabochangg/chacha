@@ -16,8 +16,9 @@ body {
   inset: 0;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 14%, rgba(216, 145, 61, 0.16), transparent 34%),
-    linear-gradient(180deg, #18141c 0%, #11141a 48%, #201816 100%);
+    radial-gradient(circle at 50% 12%, rgba(28, 255, 214, 0.13), transparent 33%),
+    radial-gradient(circle at 14% 86%, rgba(216, 168, 85, 0.08), transparent 28%),
+    linear-gradient(180deg, #061216 0%, #071015 48%, #03080c 100%);
   color: #f6eedf;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   touch-action: none;
@@ -32,8 +33,8 @@ body {
   justify-content: center;
   overscroll-behavior: none;
   background:
-    linear-gradient(90deg, rgba(91, 58, 31, 0.32), transparent 18%, transparent 82%, rgba(91, 58, 31, 0.32)),
-    linear-gradient(180deg, rgba(20, 20, 28, 0.92), rgba(17, 20, 26, 0.96));
+    linear-gradient(90deg, rgba(28, 255, 214, 0.12), transparent 16%, transparent 84%, rgba(28, 255, 214, 0.1)),
+    linear-gradient(180deg, rgba(4, 15, 19, 0.96), rgba(2, 8, 12, 0.98));
 }
 
 canvas {

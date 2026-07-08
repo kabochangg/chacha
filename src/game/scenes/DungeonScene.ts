@@ -376,7 +376,7 @@ export class DungeonScene extends Phaser.Scene {
           .setDepth(0);
       }
     }
-    this.add.rectangle(MAP_WIDTH * TILE / 2, MAP_HEIGHT * TILE / 2, MAP_WIDTH * TILE, MAP_HEIGHT * TILE, this.dungeon.theme.ambient, 0.035)
+    this.add.rectangle(MAP_WIDTH * TILE / 2, MAP_HEIGHT * TILE / 2, MAP_WIDTH * TILE, MAP_HEIGHT * TILE, this.dungeon.theme.ambient, 0.055)
       .setDepth(1);
 
     for (let x = 0; x < MAP_WIDTH; x += 1) {
@@ -486,8 +486,8 @@ export class DungeonScene extends Phaser.Scene {
     const y = tileY * TILE + TILE / 2;
     this.add.ellipse(x, y + 13, kind.width + 16, 12, 0x190b0c, 0.34)
       .setDepth(15);
-    this.add.ellipse(x, y, kind.width + 18, kind.height + 16, kind.color, 0.1)
-      .setStrokeStyle(1, 0xf2d49b, 0.16)
+    this.add.ellipse(x, y, kind.width + 18, kind.height + 16, kind.color, 0.12)
+      .setStrokeStyle(1, 0x25f6d4, 0.14)
       .setDepth(15);
     const object = this.add.image(x, y, textures.full)
       .setAngle(Phaser.Math.Between(-12, 12))
@@ -676,14 +676,14 @@ export class DungeonScene extends Phaser.Scene {
     const rightBarWidth = compact ? 108 : 154;
     const rightBarX = compact ? width - 176 : Math.max(188, width - 178);
 
-    this.add.rectangle(panelX, 42, width - 26, panelHeight, 0x171722, 0.84)
-      .setStrokeStyle(2, 0xe2b56f, 0.36)
+    this.add.rectangle(panelX, 42, width - 26, panelHeight, 0x07161a, 0.9)
+      .setStrokeStyle(1, 0x25f6d4, 0.34)
       .setScrollFactor(0)
       .setDepth(90);
     this.hudText = this.add.text(panelX, 12, "", {
       fontFamily: "sans-serif",
       fontSize: compact ? "15px" : "16px",
-      color: "#f8e7c7",
+      color: "#fff6df",
       fontStyle: "600",
       align: "center",
       stroke: "#120b0c",
@@ -693,15 +693,15 @@ export class DungeonScene extends Phaser.Scene {
     this.hpBar = this.createHudBar(23, 39, leftBarWidth, "HP", 0xd95a4e);
     this.staminaBar = this.createHudBar(23, 61, leftBarWidth, "STM", 0x68b36f);
     this.bagBar = this.createHudBar(rightBarX, 39, rightBarWidth, "素材", 0xd8a54a);
-    this.cleanBar = this.createHudBar(rightBarX, 61, rightBarWidth, "清掃", 0x6aa2cf);
+    this.cleanBar = this.createHudBar(rightBarX, 61, rightBarWidth, "清掃", 0x25f6d4);
 
     this.infoText = this.add.text(panelX, compact ? 91 : 86, "", {
       fontFamily: "sans-serif",
       fontSize: compact ? "14px" : "15px",
-      color: "#ffe0a3",
+      color: "#25f6d4",
       align: "center",
       fontStyle: "600",
-      backgroundColor: "#171722cc",
+      backgroundColor: "#07161add",
       padding: { x: 8, y: 3 },
       wordWrap: { width: width - 70 },
       stroke: "#120b0c",
@@ -710,9 +710,9 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private createHudBar(x: number, y: number, width: number, label: string, color: number): HudBar {
-    this.add.rectangle(x, y, width, 10, 0x0f1118, 0.92)
+    this.add.rectangle(x, y, width, 10, 0x03080c, 0.92)
       .setOrigin(0, 0.5)
-      .setStrokeStyle(1, 0xf6d39b, 0.25)
+      .setStrokeStyle(1, 0x25f6d4, 0.28)
       .setScrollFactor(0)
       .setDepth(91);
     const fill = this.add.rectangle(x + 1, y, width - 2, 8, color, 1)
@@ -1241,8 +1241,8 @@ export class DungeonScene extends Phaser.Scene {
     const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(160);
     const centerX = width / 2;
     const centerY = height / 2;
-    const bg = this.add.rectangle(centerX, centerY, width - 44, 442, 0x171722, 0.94)
-      .setStrokeStyle(2, 0xe2b56f, 0.8)
+    const bg = this.add.rectangle(centerX, centerY, width - 44, 442, 0x07161a, 0.96)
+      .setStrokeStyle(1, 0x25f6d4, 0.72)
       .setScrollFactor(0);
     const title = this.add.text(centerX, centerY - 186, "一時停止", {
       fontFamily: "sans-serif",
@@ -1290,8 +1290,8 @@ export class DungeonScene extends Phaser.Scene {
     const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(160);
     const centerX = width / 2;
     const centerY = height / 2;
-    const bg = this.add.rectangle(centerX, centerY, width - 44, 332, 0x171722, 0.96)
-      .setStrokeStyle(2, 0x7ce59a, 0.8)
+    const bg = this.add.rectangle(centerX, centerY, width - 44, 332, 0x07161a, 0.96)
+      .setStrokeStyle(1, 0x25f6d4, 0.8)
       .setScrollFactor(0);
     const title = this.add.text(centerX, centerY - 132, "出口", {
       fontFamily: "sans-serif",
@@ -1329,8 +1329,8 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private createMenuButton(x: number, y: number, label: string, color: number, onClick: () => void): Phaser.GameObjects.Container {
-    const button = this.add.rectangle(x, y, 220, 48, color, 1)
-      .setStrokeStyle(2, 0xffd08a, 0.75)
+    const button = this.add.rectangle(x, y, 220, 48, color, 0.94)
+      .setStrokeStyle(1, 0x25f6d4, 0.66)
       .setScrollFactor(0)
       .setInteractive({ useHandCursor: true });
     const text = this.add.text(x, y, label, {
@@ -1370,8 +1370,8 @@ export class DungeonScene extends Phaser.Scene {
     const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(160);
     const centerX = width / 2;
     const top = Math.max(86, height / 2 - 270);
-    const bg = this.add.rectangle(centerX, height / 2, width - 28, Math.min(height - 54, 560), 0x171722, 0.96)
-      .setStrokeStyle(2, 0xe2b56f, 0.8)
+    const bg = this.add.rectangle(centerX, height / 2, width - 28, Math.min(height - 54, 560), 0x07161a, 0.96)
+      .setStrokeStyle(1, 0x25f6d4, 0.72)
       .setScrollFactor(0);
     const title = this.add.text(centerX, top, `バッグ整理 ${materialCount}/${capacity}`, {
       fontFamily: "sans-serif",
@@ -1397,8 +1397,8 @@ export class DungeonScene extends Phaser.Scene {
       const count = this.runInventory[itemId];
       const amount = this.getDiscardAmount(itemId);
       const rowY = top + 76 + index * 72;
-      const rowBg = this.add.rectangle(centerX, rowY, width - 54, 62, 0x30281f, 0.96)
-        .setStrokeStyle(1, 0x8b6338, 0.72)
+      const rowBg = this.add.rectangle(centerX, rowY, width - 54, 62, 0x071219, 0.96)
+        .setStrokeStyle(1, 0x25f6d4, 0.24)
         .setScrollFactor(0);
       const label = this.add.text(34, rowY - 21, `${item.name} x${count}`, {
         fontFamily: "sans-serif",
@@ -1438,8 +1438,8 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private createOverlayButton(x: number, y: number, width: number, height: number, label: string, color: number, onClick: () => void): Phaser.GameObjects.Container {
-    const button = this.add.rectangle(x, y, width, height, color, 1)
-      .setStrokeStyle(1, 0xffd08a, 0.66)
+    const button = this.add.rectangle(x, y, width, height, color, 0.94)
+      .setStrokeStyle(1, 0x25f6d4, 0.58)
       .setScrollFactor(0)
       .setInteractive({ useHandCursor: true });
     const text = this.add.text(x, y, label, {
