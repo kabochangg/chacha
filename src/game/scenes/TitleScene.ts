@@ -22,12 +22,16 @@ export class TitleScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor("#171722");
     this.add.rectangle(width / 2, height / 2, width, height, 0x171722);
-    this.add.rectangle(width / 2, height / 2, width, height, 0x211918, 0.72);
-    this.add.ellipse(width / 2, compact ? 108 : 128, width * 0.86, compact ? 150 : 190, 0xf2c36b, 0.07);
-    this.add.ellipse(width / 2, height - 156, width * 0.9, compact ? 132 : 180, 0x6aa2cf, 0.045);
+    this.add.rectangle(width / 2, height / 2, width, height, 0x181514, 0.82);
+    this.add.polygon(width * 0.2, height * 0.28, [0, 0, width * 0.82, -56, width * 0.72, 18, -28, 72], 0x26313a, 0.3);
+    this.add.polygon(width * 0.78, height * 0.74, [0, 0, width * 0.46, -30, width * 0.56, 24, 20, 78], 0x14343a, 0.28);
+    this.add.ellipse(width / 2, compact ? 108 : 128, width * 0.84, compact ? 144 : 178, 0xe2b56f, 0.055);
+    this.add.ellipse(width / 2, height - 146, width * 0.88, compact ? 112 : 150, 0x67b7a8, 0.035);
     for (let y = compact ? 140 : 170; y < height - 112; y += 52) {
-      this.add.rectangle(width / 2, y, width - 34, 1, 0x8b6338, 0.14);
+      this.add.rectangle(width / 2, y, width - 38, 1, 0x8b6338, 0.1);
     }
+    this.add.rectangle(24, height / 2, 2, height - 120, 0xe2b56f, 0.18);
+    this.add.rectangle(width - 24, height / 2, 2, height - 120, 0x67b7a8, 0.12);
 
     this.add.image(width / 2 - 96, sceneY - 28, ASSET_KEYS.debris.brokenCrate).setDisplaySize(compact ? 62 : 72, compact ? 42 : 48).setAlpha(0.84);
     this.add.image(width / 2 + 98, sceneY - 32, ASSET_KEYS.dungeon.exitOpen).setDisplaySize(compact ? 58 : 68, compact ? 74 : 88).setAlpha(0.92);
@@ -36,6 +40,13 @@ export class TitleScene extends Phaser.Scene {
     this.add.image(width / 2 + 8, itemY, ASSET_KEYS.item.stone).setDisplaySize(compact ? 24 : 30, compact ? 24 : 30);
     this.add.image(width / 2 + 50, itemY, ASSET_KEYS.item.slime).setDisplaySize(compact ? 24 : 30, compact ? 24 : 30);
 
+    this.add.text(width / 2, titleY - (compact ? 28 : 34), "AFTER HEROES / CLEANUP LOG", {
+      fontFamily: "sans-serif",
+      fontSize: "10px",
+      color: "#67b7a8",
+      fontStyle: "500",
+      letterSpacing: 1
+    }).setOrigin(0.5).setAlpha(0.9);
     this.add.text(width / 2, titleY, "勇者のあとしまつ", {
       fontFamily: "sans-serif",
       fontSize: width < 430 ? (compact ? "25px" : "27px") : "31px",
@@ -44,6 +55,7 @@ export class TitleScene extends Phaser.Scene {
       stroke: "#120b0c",
       strokeThickness: 1
     }).setOrigin(0.5);
+    this.add.rectangle(width / 2, titleY + (compact ? 24 : 30), width * 0.46, 1, 0xe2b56f, 0.62);
     this.add.text(width / 2, subtitleY, "ダンジョン清掃員の生活", {
       fontFamily: "sans-serif",
       fontSize: compact ? "16px" : "18px",
@@ -52,8 +64,9 @@ export class TitleScene extends Phaser.Scene {
       stroke: "#120b0c",
       strokeThickness: 0
     }).setOrigin(0.5);
-    this.add.rectangle(width / 2, descY, width - 52, compact ? 64 : 72, 0x171722, 0.72)
-      .setStrokeStyle(1, 0xe2b56f, 0.42);
+    this.add.rectangle(width / 2, descY, width - 52, compact ? 64 : 72, 0x111720, 0.82)
+      .setStrokeStyle(1, 0x67b7a8, 0.36);
+    this.add.rectangle(42, descY, 4, compact ? 46 : 54, 0xe2b56f, 0.72);
     this.add.text(width / 2, descY, "残骸を掃除して素材を集め、\n拠点で道具を整えましょう。", {
       fontFamily: "sans-serif",
       fontSize: compact ? "14px" : "15px",
@@ -82,9 +95,11 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private createButton(x: number, y: number, width: number, height: number, label: string, color: number, labelColor: string, onClick: () => void): void {
-    const button = this.add.rectangle(x, y, width, height, color, 1)
-      .setStrokeStyle(2, 0xffd08a, 0.74)
+    const button = this.add.rectangle(x, y, width, height, color, 0.96)
+      .setStrokeStyle(1, 0xffd08a, 0.68)
       .setInteractive({ useHandCursor: true });
+    this.add.rectangle(x - width / 2 + 4, y, 4, height - 12, labelColor === "#25170e" ? 0x25170e : 0x67b7a8, 0.68);
+    this.add.rectangle(x, y + height / 2 - 3, width - 20, 1, 0xffffff, 0.14);
     this.add.text(x, y, label, {
       fontFamily: "sans-serif",
       fontSize: "19px",

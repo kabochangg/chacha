@@ -36,7 +36,9 @@ export class BaseScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor("#171722");
     this.drawBaseBackdrop();
 
-    this.addPanel(width / 2, 58, width - 24, 92, 0x171722, 0.9, 0xe2b56f, 0.38);
+    this.addPanel(width / 2, 58, width - 24, 92, 0x101722, 0.91, 0x67b7a8, 0.32);
+    this.addEdgeFrame(width / 2, 58, width - 24, 92, 0xe2b56f, 0.42);
+    this.add.rectangle(28, 58, 4, 68, 0xe2b56f, 0.58);
     this.addReadableText(width / 2, 20, "清掃員の拠点", 20, "#f8e7c7", {
       fontStyle: "600",
       origin: [0.5, 0],
@@ -67,12 +69,14 @@ export class BaseScene extends Phaser.Scene {
   private drawBaseBackdrop(): void {
     const { width, height } = this.scale;
     this.add.rectangle(width / 2, height / 2, width, height, 0x171722);
-    this.add.rectangle(width / 2, height / 2, width, height, 0x211918, 0.58);
+    this.add.rectangle(width / 2, height / 2, width, height, 0x171311, 0.66);
+    this.add.polygon(width * 0.12, height * 0.34, [0, 0, width * 0.72, -60, width * 0.66, -8, -28, 48], 0x2d3a3f, 0.2);
+    this.add.polygon(width * 0.72, height * 0.78, [0, 0, width * 0.42, -40, width * 0.5, 10, 18, 66], 0x12363b, 0.22);
     for (let y = 122; y < height - 118; y += 56) {
-      this.add.rectangle(width / 2, y, width - 26, 1, 0x8b6338, 0.14);
+      this.add.rectangle(width / 2, y, width - 32, 1, 0x8b6338, 0.09);
     }
-    this.add.ellipse(width * 0.2, 118, 170, 120, 0xf2c36b, 0.08);
-    this.add.ellipse(width * 0.82, height - 156, 180, 120, 0x6aa2cf, 0.06);
+    this.add.ellipse(width * 0.2, 118, 170, 120, 0xf2c36b, 0.055);
+    this.add.ellipse(width * 0.82, height - 156, 180, 120, 0x67b7a8, 0.045);
     this.add.image(42, 132, ASSET_KEYS.player.broom)
       .setDisplaySize(28, 76)
       .setAngle(-28)
@@ -95,8 +99,8 @@ export class BaseScene extends Phaser.Scene {
     tabs.forEach(([tab, label], index) => {
       const x = 10 + tabWidth * index + tabWidth / 2;
       const y = height - 38;
-      const button = this.add.rectangle(x, y, tabWidth - 4, 50, 0x202331, 0.96)
-        .setStrokeStyle(1, 0x8b6338, 0.78)
+      const button = this.add.rectangle(x, y, tabWidth - 4, 50, 0x151c27, 0.96)
+        .setStrokeStyle(1, 0x4f6470, 0.66)
         .setInteractive({ useHandCursor: true });
       const text = this.addReadableText(x, y, label, width < 390 ? 11 : 12, "#f8e7c7", {
         fontStyle: "600",
@@ -122,8 +126,10 @@ export class BaseScene extends Phaser.Scene {
 
     const panelTop = 116;
     const panelHeight = height - 242;
-    const bg = this.addPanel(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, 0x2b241d, 0.96, 0x8b6338, 0.72);
+    const bg = this.addPanel(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, 0x201d19, 0.94, 0x67b7a8, 0.24);
     this.panel.add(bg);
+    this.panel.add(this.createEdgeFrame(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, 0xe2b56f, 0.44));
+    this.panel.add(this.add.rectangle(28, panelTop + 38, 4, 54, 0x67b7a8, 0.55));
 
     if (tab === "home") this.showHome();
     if (tab === "inventory") this.showInventory();
@@ -136,11 +142,12 @@ export class BaseScene extends Phaser.Scene {
 
   private showHome(): void {
     const { width, height } = this.scale;
-    this.addToPanel(this.addReadableText(width / 2, 138, "今日の清掃メモ", 19, "#f8e7c7", {
+    this.addToPanel(this.addReadableText(width / 2, 138, "今日の清掃メモ", 18, "#f8e7c7", {
       fontStyle: "600",
       origin: [0.5, 0.5],
       strokeThickness: 1
     }));
+    this.addToPanel(this.add.rectangle(width / 2, 160, width - 118, 1, 0x67b7a8, 0.32));
     this.addToPanel(this.addReadableText(width / 2, 190,
       "はじまりの地下道 B1F〜B5F\n清掃率80%以上で出口が開きます。\n素材を持ち帰って道具を整えましょう。",
       14,
@@ -152,11 +159,11 @@ export class BaseScene extends Phaser.Scene {
     this.addToPanel(this.add.image(width / 2, 278, ASSET_KEYS.debris.brokenChest).setDisplaySize(58, 42));
     this.addToPanel(this.add.image(width / 2 + 96, 278, ASSET_KEYS.dungeon.exitOpen).setDisplaySize(50, 62));
 
-    this.createButton(width / 2, height - 282, 292, 56, "はじまりの地下道へ", 0xd8913d, () => {
+    this.createButton(width / 2, height - 282, 292, 56, "はじまりの地下道へ", 0xb9772c, () => {
       this.scene.start("DungeonScene", { floor: 1 });
     }, 17);
-    this.createButton(width / 2, height - 218, 292, 46, "操作UIを左右反転", 0x496575, () => this.toggleControls(), 15);
-    this.createButton(width / 2, height - 162, 292, 44, "タイトルへ", 0x252936, () => this.scene.start("TitleScene"), 15);
+    this.createButton(width / 2, height - 218, 292, 46, "操作UIを左右反転", 0x365b64, () => this.toggleControls(), 15);
+    this.createButton(width / 2, height - 162, 292, 44, "タイトルへ", 0x1c2230, () => this.scene.start("TitleScene"), 15);
     this.messageText.setText("素材を持ち帰り、ショップで強化。");
   }
 
@@ -174,8 +181,9 @@ export class BaseScene extends Phaser.Scene {
     ITEM_IDS.forEach((itemId, index) => {
       const item = ITEMS[itemId];
       const y = 174 + index * 54;
-      const row = this.addPanel(width / 2, y, width - 54, 46, 0x171722, 0.72, 0x8b6338, 0.36);
+      const row = this.addPanel(width / 2, y, width - 54, 46, 0x111720, 0.72, 0x67b7a8, 0.2);
       this.addToPanel(row);
+      this.addToPanel(this.add.rectangle(40, y, 2, 28, 0xe2b56f, 0.36));
       this.addToPanel(this.add.image(44, y, item.iconKey).setDisplaySize(24, 24));
       this.addToPanel(this.addReadableText(66, y - 12, `${item.name} x${this.save.inventory[itemId]}`, 14, "#fff4df", {
         fontStyle: "600",
@@ -189,7 +197,7 @@ export class BaseScene extends Phaser.Scene {
       }));
     });
 
-    this.createButton(width / 2, height - 166, 292, 48, value > 0 ? `倉庫素材を売る +${value}G` : "倉庫は空です", value > 0 ? 0x496575 : 0x252936, () => {
+    this.createButton(width / 2, height - 166, 292, 48, value > 0 ? `倉庫素材を売る +${value}G` : "倉庫は空です", value > 0 ? 0x365b64 : 0x1c2230, () => {
       this.sellInventory(value);
     }, 15);
     this.messageText.setText("素材は売却のほか、ほうきや作業道具の生産にも使います。");
@@ -205,14 +213,14 @@ export class BaseScene extends Phaser.Scene {
     const steps = ["B1F", "B2F", "B3F", "B4F", "B5F"];
     steps.forEach((label, index) => {
       const x = 54 + index * ((width - 108) / 4);
-      this.addToPanel(this.add.circle(x, 210, 22, index === 4 ? 0x4d8f6a : 0x30281f, 0.96).setStrokeStyle(2, 0xe2b56f, 0.88));
+      this.addToPanel(this.add.circle(x, 210, 22, index === 4 ? 0x3a8b75 : 0x151c27, 0.96).setStrokeStyle(1, index === 4 ? 0xe2b56f : 0x67b7a8, 0.78));
       this.addToPanel(this.addReadableText(x, 210, label, 12, "#fff4df", {
         fontStyle: "600",
         origin: [0.5, 0.5],
         strokeThickness: 1
       }));
       if (index < steps.length - 1) {
-        this.addToPanel(this.add.rectangle(x + ((width - 108) / 8), 210, (width - 108) / 4 - 48, 3, 0x8b6338, 0.88));
+        this.addToPanel(this.add.rectangle(x + ((width - 108) / 8), 210, (width - 108) / 4 - 48, 2, 0x67b7a8, 0.42));
       }
     });
     this.addToPanel(this.addReadableText(width / 2, 292,
@@ -238,7 +246,8 @@ export class BaseScene extends Phaser.Scene {
       origin: [0.5, 0.5],
       strokeThickness: 1
     }));
-    this.addToPanel(this.addPanel(width / 2, 218, width - 58, 126, 0x171722, 0.76, 0xe2b56f, 0.42));
+    this.addToPanel(this.addPanel(width / 2, 218, width - 58, 126, 0x111720, 0.76, 0x67b7a8, 0.28));
+    this.addToPanel(this.add.rectangle(54, 218, 3, 96, 0xe2b56f, 0.5));
     this.addToPanel(this.addReadableText(width / 2, 190, "今の目標", 16, "#ffe0a3", {
       fontStyle: "600",
       origin: [0.5, 0.5],
@@ -267,12 +276,12 @@ export class BaseScene extends Phaser.Scene {
       origin: [0.5, 0.5],
       strokeThickness: 1
     }));
-    this.createButton(width / 2, 172, 304, 42, `ほうき強化 ${getBroomUpgradeCost(this.save.player.broomLevel)}G`, 0x638846, () => this.spendGold("broom"), 14);
-    this.createButton(width / 2, 222, 304, 42, `バッグ強化 ${getBagUpgradeCost(this.save.player.bagLevel)}G`, 0x496f83, () => this.spendGold("bag"), 14);
-    this.createButton(width / 2, 272, 304, 42, `追い払い強化 ${getAttackUpgradeCost(this.save.player.attackLevel)}G`, 0x88414c, () => this.spendGold("attack"), 14);
-    this.createButton(width / 2, 322, 304, 42, `スタミナ強化 ${getStaminaUpgradeCost(this.save.player.staminaLevel)}G`, 0x557d53, () => this.spendGold("stamina"), 14);
-    this.createButton(width / 2, height - 206, 304, 42, this.save.player.craftedBroom ? "強化ほうき 生産済み" : "強化ほうき生産 石材2 木片2", 0x8b6338, () => this.craft("broom"), 14);
-    this.createButton(width / 2, height - 156, 304, 42, this.save.player.craftedWeapon ? "作業道具 生産済み" : "作業道具生産 金属片1 木片2", 0x8b6338, () => this.craft("weapon"), 14);
+    this.createButton(width / 2, 172, 304, 42, `ほうき強化 ${getBroomUpgradeCost(this.save.player.broomLevel)}G`, 0x526f43, () => this.spendGold("broom"), 14);
+    this.createButton(width / 2, 222, 304, 42, `バッグ強化 ${getBagUpgradeCost(this.save.player.bagLevel)}G`, 0x365b64, () => this.spendGold("bag"), 14);
+    this.createButton(width / 2, 272, 304, 42, `追い払い強化 ${getAttackUpgradeCost(this.save.player.attackLevel)}G`, 0x74404a, () => this.spendGold("attack"), 14);
+    this.createButton(width / 2, 322, 304, 42, `スタミナ強化 ${getStaminaUpgradeCost(this.save.player.staminaLevel)}G`, 0x4a6a4a, () => this.spendGold("stamina"), 14);
+    this.createButton(width / 2, height - 206, 304, 42, this.save.player.craftedBroom ? "強化ほうき 生産済み" : "強化ほうき生産 石材2 木片2", 0x745732, () => this.craft("broom"), 14);
+    this.createButton(width / 2, height - 156, 304, 42, this.save.player.craftedWeapon ? "作業道具 生産済み" : "作業道具生産 金属片1 木片2", 0x745732, () => this.craft("weapon"), 14);
     this.messageText.setText("強化は清掃力、容量、対処力、行動継続に直結します。");
   }
 
@@ -357,8 +366,10 @@ export class BaseScene extends Phaser.Scene {
     fontSize = 17
   ): void {
     const button = this.add.rectangle(x, y, width, height, color, 1)
-      .setStrokeStyle(1, 0xffd08a, 0.72)
+      .setStrokeStyle(1, 0xe2b56f, 0.58)
       .setInteractive({ useHandCursor: true });
+    const rail = this.add.rectangle(x - width / 2 + 5, y, 4, height - 10, 0x67b7a8, 0.56);
+    const shine = this.add.rectangle(x, y + height / 2 - 3, width - 22, 1, 0xffffff, 0.12);
     const text = this.addReadableText(x, y, label, fontSize, "#fff4df", {
       fontStyle: "500",
       align: "center",
@@ -366,7 +377,7 @@ export class BaseScene extends Phaser.Scene {
       wordWrapWidth: width - 18,
       strokeThickness: 1
     });
-    this.panel.add([button, text]);
+    this.panel.add([button, rail, shine, text]);
     button.on("pointerdown", () => {
       button.setScale(0.98);
       text.setScale(0.98);
@@ -395,12 +406,41 @@ export class BaseScene extends Phaser.Scene {
   private refreshTabs(): void {
     for (const [tab, button] of this.tabButtons) {
       const active = tab === this.currentTab;
-      button.setFillStyle(active ? 0xc68134 : 0x202331, active ? 1 : 0.96);
-      button.setStrokeStyle(1, active ? 0xffe0a3 : 0x8b6338, active ? 0.9 : 0.72);
+      button.setFillStyle(active ? 0xb9772c : 0x151c27, active ? 1 : 0.96);
+      button.setStrokeStyle(1, active ? 0xffe0a3 : 0x4f6470, active ? 0.82 : 0.66);
       const label = this.tabLabels.get(tab);
       label?.setColor(active ? "#25170e" : "#f8e7c7");
       label?.setStroke(active ? "#f7c574" : "#120b0c", active ? 1 : 1);
     }
+  }
+
+  private addEdgeFrame(x: number, y: number, width: number, height: number, color: number, alpha: number): void {
+    this.createEdgeFrame(x, y, width, height, color, alpha);
+  }
+
+  private createEdgeFrame(x: number, y: number, width: number, height: number, color: number, alpha: number): Phaser.GameObjects.Graphics {
+    const g = this.add.graphics();
+    const left = x - width / 2;
+    const right = x + width / 2;
+    const top = y - height / 2;
+    const bottom = y + height / 2;
+    const corner = 18;
+    g.lineStyle(1, color, alpha);
+    g.beginPath();
+    g.moveTo(left, top + corner);
+    g.lineTo(left, top);
+    g.lineTo(left + corner, top);
+    g.moveTo(right - corner, top);
+    g.lineTo(right, top);
+    g.lineTo(right, top + corner);
+    g.moveTo(left, bottom - corner);
+    g.lineTo(left, bottom);
+    g.lineTo(left + corner, bottom);
+    g.moveTo(right - corner, bottom);
+    g.lineTo(right, bottom);
+    g.lineTo(right, bottom - corner);
+    g.strokePath();
+    return g;
   }
 
   private addPanel(x: number, y: number, width: number, height: number, color: number, alpha: number, stroke: number, strokeAlpha: number): Phaser.GameObjects.Rectangle {
