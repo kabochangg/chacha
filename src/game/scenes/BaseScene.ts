@@ -36,23 +36,23 @@ export class BaseScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor("#171722");
     this.drawBaseBackdrop();
 
-    this.addPanel(width / 2, 58, width - 24, 94, 0x171722, 0.92, 0xe2b56f, 0.46);
-    this.addReadableText(width / 2, 19, "清掃員の拠点", 22, "#f8e7c7", {
-      fontStyle: "700",
+    this.addPanel(width / 2, 58, width - 24, 92, 0x171722, 0.9, 0xe2b56f, 0.38);
+    this.addReadableText(width / 2, 20, "清掃員の拠点", 20, "#f8e7c7", {
+      fontStyle: "600",
       origin: [0.5, 0],
       strokeThickness: 1
     });
 
-    this.statusText = this.addReadableText(width / 2, 65, "", 13, "#fff4df", {
+    this.statusText = this.addReadableText(width / 2, 66, "", 12, "#fff4df", {
       align: "center",
-      lineSpacing: 5,
+      lineSpacing: 6,
       origin: [0.5, 0.5],
       wordWrapWidth: width - 42,
       strokeThickness: 1
     });
 
     this.panel = this.add.container(0, 0);
-    this.messageText = this.addReadableText(width / 2, height - 98, "", 14, "#ffe0a3", {
+    this.messageText = this.addReadableText(width / 2, height - 98, "", 13, "#ffe0a3", {
       align: "center",
       origin: [0.5, 0.5],
       wordWrapWidth: width - 54,
@@ -67,9 +67,9 @@ export class BaseScene extends Phaser.Scene {
   private drawBaseBackdrop(): void {
     const { width, height } = this.scale;
     this.add.rectangle(width / 2, height / 2, width, height, 0x171722);
-    this.add.rectangle(width / 2, height / 2, width, height, 0x241a19, 0.55);
+    this.add.rectangle(width / 2, height / 2, width, height, 0x211918, 0.58);
     for (let y = 122; y < height - 118; y += 56) {
-      this.add.rectangle(width / 2, y, width - 26, 2, 0x8b6338, 0.12);
+      this.add.rectangle(width / 2, y, width - 26, 1, 0x8b6338, 0.14);
     }
     this.add.ellipse(width * 0.2, 118, 170, 120, 0xf2c36b, 0.08);
     this.add.ellipse(width * 0.82, height - 156, 180, 120, 0x6aa2cf, 0.06);
@@ -95,8 +95,8 @@ export class BaseScene extends Phaser.Scene {
     tabs.forEach(([tab, label], index) => {
       const x = 10 + tabWidth * index + tabWidth / 2;
       const y = height - 38;
-      const button = this.add.rectangle(x, y, tabWidth - 4, 50, 0x242633, 0.96)
-        .setStrokeStyle(2, 0x8b6338, 0.78)
+      const button = this.add.rectangle(x, y, tabWidth - 4, 50, 0x202331, 0.96)
+        .setStrokeStyle(1, 0x8b6338, 0.78)
         .setInteractive({ useHandCursor: true });
       const text = this.addReadableText(x, y, label, width < 390 ? 11 : 12, "#f8e7c7", {
         fontStyle: "600",
@@ -122,7 +122,7 @@ export class BaseScene extends Phaser.Scene {
 
     const panelTop = 116;
     const panelHeight = height - 242;
-    const bg = this.addPanel(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, 0x30281f, 0.97, 0x8b6338, 0.9);
+    const bg = this.addPanel(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, 0x2b241d, 0.96, 0x8b6338, 0.72);
     this.panel.add(bg);
 
     if (tab === "home") this.showHome();
@@ -136,14 +136,14 @@ export class BaseScene extends Phaser.Scene {
 
   private showHome(): void {
     const { width, height } = this.scale;
-    this.addToPanel(this.addReadableText(width / 2, 138, "今日の清掃メモ", 21, "#f8e7c7", {
-      fontStyle: "700",
+    this.addToPanel(this.addReadableText(width / 2, 138, "今日の清掃メモ", 19, "#f8e7c7", {
+      fontStyle: "600",
       origin: [0.5, 0.5],
-      strokeThickness: 2
+      strokeThickness: 1
     }));
     this.addToPanel(this.addReadableText(width / 2, 190,
       "はじまりの地下道 B1F〜B5F\n清掃率80%以上で出口が開きます。\n素材を持ち帰って道具を整えましょう。",
-      15,
+      14,
       "#fff4df",
       { align: "center", lineSpacing: 7, origin: [0.5, 0.5], wordWrapWidth: width - 62, strokeThickness: 1 }
     ));
@@ -152,12 +152,12 @@ export class BaseScene extends Phaser.Scene {
     this.addToPanel(this.add.image(width / 2, 278, ASSET_KEYS.debris.brokenChest).setDisplaySize(58, 42));
     this.addToPanel(this.add.image(width / 2 + 96, 278, ASSET_KEYS.dungeon.exitOpen).setDisplaySize(50, 62));
 
-    this.createButton(width / 2, height - 282, 292, 58, "はじまりの地下道へ", 0xd8913d, () => {
+    this.createButton(width / 2, height - 282, 292, 56, "はじまりの地下道へ", 0xd8913d, () => {
       this.scene.start("DungeonScene", { floor: 1 });
-    }, 18);
-    this.createButton(width / 2, height - 218, 292, 46, "操作UIを左右反転", 0x4e6b7d, () => this.toggleControls(), 16);
-    this.createButton(width / 2, height - 162, 292, 44, "タイトルへ", 0x2a2d38, () => this.scene.start("TitleScene"), 16);
-    this.messageText.setText("短く潜って素材を持ち帰り、ショップで強化しましょう。");
+    }, 17);
+    this.createButton(width / 2, height - 218, 292, 46, "操作UIを左右反転", 0x496575, () => this.toggleControls(), 15);
+    this.createButton(width / 2, height - 162, 292, 44, "タイトルへ", 0x252936, () => this.scene.start("TitleScene"), 15);
+    this.messageText.setText("素材を持ち帰り、ショップで強化。");
   }
 
   private showInventory(): void {
@@ -165,16 +165,16 @@ export class BaseScene extends Phaser.Scene {
     const capacity = getBagCapacity(this.save.player.bagLevel);
     const count = getInventoryCount(this.save.inventory);
     const value = getInventoryValue(this.save.inventory);
-    this.addToPanel(this.addReadableText(width / 2, 132, `持ち物・倉庫 ${count}/${capacity}`, 20, "#f8e7c7", {
-      fontStyle: "700",
+    this.addToPanel(this.addReadableText(width / 2, 132, `持ち物・倉庫 ${count}/${capacity}`, 18, "#f8e7c7", {
+      fontStyle: "600",
       origin: [0.5, 0.5],
-      strokeThickness: 2
+      strokeThickness: 1
     }));
 
     ITEM_IDS.forEach((itemId, index) => {
       const item = ITEMS[itemId];
       const y = 174 + index * 54;
-      const row = this.addPanel(width / 2, y, width - 54, 46, 0x171722, 0.78, 0x8b6338, 0.45);
+      const row = this.addPanel(width / 2, y, width - 54, 46, 0x171722, 0.72, 0x8b6338, 0.36);
       this.addToPanel(row);
       this.addToPanel(this.add.image(44, y, item.iconKey).setDisplaySize(24, 24));
       this.addToPanel(this.addReadableText(66, y - 12, `${item.name} x${this.save.inventory[itemId]}`, 14, "#fff4df", {
@@ -189,18 +189,18 @@ export class BaseScene extends Phaser.Scene {
       }));
     });
 
-    this.createButton(width / 2, height - 166, 292, 48, value > 0 ? `倉庫素材を売る +${value}G` : "倉庫は空です", value > 0 ? 0x4e6b7d : 0x2a2d38, () => {
+    this.createButton(width / 2, height - 166, 292, 48, value > 0 ? `倉庫素材を売る +${value}G` : "倉庫は空です", value > 0 ? 0x496575 : 0x252936, () => {
       this.sellInventory(value);
-    }, 16);
+    }, 15);
     this.messageText.setText("素材は売却のほか、ほうきや作業道具の生産にも使います。");
   }
 
   private showMap(): void {
     const { width } = this.scale;
-    this.addToPanel(this.addReadableText(width / 2, 136, "マップ", 20, "#f8e7c7", {
-      fontStyle: "700",
+    this.addToPanel(this.addReadableText(width / 2, 136, "マップ", 18, "#f8e7c7", {
+      fontStyle: "600",
       origin: [0.5, 0.5],
-      strokeThickness: 2
+      strokeThickness: 1
     }));
     const steps = ["B1F", "B2F", "B3F", "B4F", "B5F"];
     steps.forEach((label, index) => {
@@ -216,12 +216,12 @@ export class BaseScene extends Phaser.Scene {
       }
     });
     this.addToPanel(this.addReadableText(width / 2, 292,
-      "出撃ごとに開始位置、残骸、危険物、出口候補が変わります。\nB5Fが最奥地。途中で拠点へ戻ることもできます。",
-      15,
+      "出撃ごとに開始位置、残骸、危険物、\n出口候補が変わります。\nB5Fが最奥地。途中で拠点へ戻れます。",
+      14,
       "#fff4df",
       { align: "center", lineSpacing: 7, origin: [0.5, 0.5], wordWrapWidth: width - 60, strokeThickness: 1 }
     ));
-    this.messageText.setText("v1ではこの地下道を短く気持ちよく遊べるように磨きます。");
+    this.messageText.setText("地下道は出撃ごとに少し変化します。");
   }
 
   private showRequests(): void {
@@ -233,44 +233,44 @@ export class BaseScene extends Phaser.Scene {
         : inventoryCount < 6
           ? "倉庫整理: 素材を合計6個保管する"
           : "最奥挑戦: B5Fまで進んで帰還する";
-    this.addToPanel(this.addReadableText(width / 2, 136, "依頼", 20, "#f8e7c7", {
-      fontStyle: "700",
+    this.addToPanel(this.addReadableText(width / 2, 136, "依頼", 18, "#f8e7c7", {
+      fontStyle: "600",
       origin: [0.5, 0.5],
-      strokeThickness: 2
+      strokeThickness: 1
     }));
-    this.addToPanel(this.addPanel(width / 2, 218, width - 58, 126, 0x171722, 0.82, 0xe2b56f, 0.5));
+    this.addToPanel(this.addPanel(width / 2, 218, width - 58, 126, 0x171722, 0.76, 0xe2b56f, 0.42));
     this.addToPanel(this.addReadableText(width / 2, 190, "今の目標", 16, "#ffe0a3", {
       fontStyle: "600",
       origin: [0.5, 0.5],
       strokeThickness: 1
     }));
-    this.addToPanel(this.addReadableText(width / 2, 232, request, 16, "#fff4df", {
-      fontStyle: "600",
+    this.addToPanel(this.addReadableText(width / 2, 232, request, 15, "#fff4df", {
+      fontStyle: "500",
       align: "center",
       origin: [0.5, 0.5],
       wordWrapWidth: width - 86,
       strokeThickness: 1
     }));
     this.addToPanel(this.addReadableText(width / 2, 324,
-      "図鑑メモ: 素材、危険物、宝、清掃員の成長はここから確認できるようにしていきます。",
-      14,
+      "図鑑メモ:\n素材、危険物、宝、清掃員の成長を\nここから確認できるようにします。",
+      13,
       "#f3efe8",
-      { align: "center", origin: [0.5, 0.5], wordWrapWidth: width - 64, strokeThickness: 1 }
+      { align: "center", lineSpacing: 6, origin: [0.5, 0.5], wordWrapWidth: width - 64, strokeThickness: 1 }
     ));
     this.messageText.setText("依頼は次の一回で狙うことだけを示します。");
   }
 
   private showShop(): void {
     const { width, height } = this.scale;
-    this.addToPanel(this.addReadableText(width / 2, 126, "ショップ・強化", 20, "#f8e7c7", {
-      fontStyle: "700",
+    this.addToPanel(this.addReadableText(width / 2, 126, "ショップ・強化", 18, "#f8e7c7", {
+      fontStyle: "600",
       origin: [0.5, 0.5],
-      strokeThickness: 2
+      strokeThickness: 1
     }));
-    this.createButton(width / 2, 172, 304, 42, `ほうき強化 ${getBroomUpgradeCost(this.save.player.broomLevel)}G`, 0x6f9345, () => this.spendGold("broom"), 15);
-    this.createButton(width / 2, 222, 304, 42, `バッグ強化 ${getBagUpgradeCost(this.save.player.bagLevel)}G`, 0x4f7f96, () => this.spendGold("bag"), 15);
-    this.createButton(width / 2, 272, 304, 42, `追い払い強化 ${getAttackUpgradeCost(this.save.player.attackLevel)}G`, 0x9b4350, () => this.spendGold("attack"), 15);
-    this.createButton(width / 2, 322, 304, 42, `スタミナ強化 ${getStaminaUpgradeCost(this.save.player.staminaLevel)}G`, 0x5e8f58, () => this.spendGold("stamina"), 15);
+    this.createButton(width / 2, 172, 304, 42, `ほうき強化 ${getBroomUpgradeCost(this.save.player.broomLevel)}G`, 0x638846, () => this.spendGold("broom"), 14);
+    this.createButton(width / 2, 222, 304, 42, `バッグ強化 ${getBagUpgradeCost(this.save.player.bagLevel)}G`, 0x496f83, () => this.spendGold("bag"), 14);
+    this.createButton(width / 2, 272, 304, 42, `追い払い強化 ${getAttackUpgradeCost(this.save.player.attackLevel)}G`, 0x88414c, () => this.spendGold("attack"), 14);
+    this.createButton(width / 2, 322, 304, 42, `スタミナ強化 ${getStaminaUpgradeCost(this.save.player.staminaLevel)}G`, 0x557d53, () => this.spendGold("stamina"), 14);
     this.createButton(width / 2, height - 206, 304, 42, this.save.player.craftedBroom ? "強化ほうき 生産済み" : "強化ほうき生産 石材2 木片2", 0x8b6338, () => this.craft("broom"), 14);
     this.createButton(width / 2, height - 156, 304, 42, this.save.player.craftedWeapon ? "作業道具 生産済み" : "作業道具生産 金属片1 木片2", 0x8b6338, () => this.craft("weapon"), 14);
     this.messageText.setText("強化は清掃力、容量、対処力、行動継続に直結します。");
@@ -357,13 +357,13 @@ export class BaseScene extends Phaser.Scene {
     fontSize = 17
   ): void {
     const button = this.add.rectangle(x, y, width, height, color, 1)
-      .setStrokeStyle(2, 0xffd08a, 0.82)
+      .setStrokeStyle(1, 0xffd08a, 0.72)
       .setInteractive({ useHandCursor: true });
     const text = this.addReadableText(x, y, label, fontSize, "#fff4df", {
-      fontStyle: "600",
+      fontStyle: "500",
       align: "center",
       origin: [0.5, 0.5],
-      wordWrapWidth: width - 16,
+      wordWrapWidth: width - 18,
       strokeThickness: 1
     });
     this.panel.add([button, text]);
@@ -395,8 +395,8 @@ export class BaseScene extends Phaser.Scene {
   private refreshTabs(): void {
     for (const [tab, button] of this.tabButtons) {
       const active = tab === this.currentTab;
-      button.setFillStyle(active ? 0xd8913d : 0x242633, active ? 1 : 0.96);
-      button.setStrokeStyle(2, active ? 0xffe0a3 : 0x8b6338, active ? 0.96 : 0.78);
+      button.setFillStyle(active ? 0xc68134 : 0x202331, active ? 1 : 0.96);
+      button.setStrokeStyle(1, active ? 0xffe0a3 : 0x8b6338, active ? 0.9 : 0.72);
       const label = this.tabLabels.get(tab);
       label?.setColor(active ? "#25170e" : "#f8e7c7");
       label?.setStroke(active ? "#f7c574" : "#120b0c", active ? 1 : 1);
@@ -405,7 +405,7 @@ export class BaseScene extends Phaser.Scene {
 
   private addPanel(x: number, y: number, width: number, height: number, color: number, alpha: number, stroke: number, strokeAlpha: number): Phaser.GameObjects.Rectangle {
     return this.add.rectangle(x, y, width, height, color, alpha)
-      .setStrokeStyle(2, stroke, strokeAlpha);
+      .setStrokeStyle(1, stroke, strokeAlpha);
   }
 
   private addReadableText(
@@ -423,6 +423,7 @@ export class BaseScene extends Phaser.Scene {
       strokeThickness?: number;
     } = {}
   ): Phaser.GameObjects.Text {
+    const strokeThickness = Math.max(0, (options.strokeThickness ?? 0) - 1);
     const label = this.add.text(x, y, text, {
       fontFamily: "sans-serif",
       fontSize: `${fontSize}px`,
@@ -431,8 +432,8 @@ export class BaseScene extends Phaser.Scene {
       align: options.align ?? "center",
       lineSpacing: options.lineSpacing ?? 5,
       stroke: "#120b0c",
-      strokeThickness: options.strokeThickness ?? 2,
-      wordWrap: options.wordWrapWidth ? { width: options.wordWrapWidth } : undefined
+      strokeThickness,
+      wordWrap: options.wordWrapWidth ? { width: options.wordWrapWidth, useAdvancedWrap: true } : undefined
     });
     label.setOrigin(...(options.origin ?? [0.5, 0.5]));
     return label;
