@@ -1,19 +1,17 @@
 import Phaser from "phaser";
 import { ASSET_KEYS } from "../data/assets";
+import { DUNGEONS, DUNGEON_ORDER, type DungeonId } from "../data/dungeons";
 import { ITEMS, type ItemId, getInventoryCount, getInventoryValue } from "../data/items";
 import {
-  getAttackUpgradeCost,
   getBagCapacity,
-  getBagUpgradeCost,
-  getBroomUpgradeCost,
-  getStaminaUpgradeCost
 } from "../data/upgrades";
+import { CRAFT_RECIPES, SHOP_UPGRADES, type CraftItemId, type UpgradeKind } from "../data/shop";
 import { loadSave, saveGame, type SaveData } from "../systems/SaveSystem";
 
 type BaseTab = "home" | "inventory" | "map" | "requests" | "shop";
-type UpgradeKind = "broom" | "bag" | "attack" | "stamina";
 
 const ITEM_IDS: ItemId[] = ["stone", "wood", "slime", "ash", "metal"];
+const RECIPES_PER_PAGE = 3;
 
 export class BaseScene extends Phaser.Scene {
   private save!: SaveData;
@@ -21,6 +19,7 @@ export class BaseScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
   private messageText!: Phaser.GameObjects.Text;
   private currentTab: BaseTab = "home";
+  private craftPage = 0;
   private tabButtons = new Map<BaseTab, Phaser.GameObjects.Rectangle>();
   private tabLabels = new Map<BaseTab, Phaser.GameObjects.Text>();
 
@@ -142,34 +141,40 @@ export class BaseScene extends Phaser.Scene {
 
   private showHome(): void {
     const { width, height } = this.scale;
-    this.addToPanel(this.addReadableText(width / 2, 138, "今日の清掃メモ", 18, "#f8e7c7", {
+    this.addToPanel(this.addReadableText(width / 2, 136, "今日の清掃メモ", 18, "#f8e7c7", {
       fontStyle: "600",
       origin: [0.5, 0.5],
       strokeThickness: 1
     }));
-    this.addToPanel(this.add.rectangle(width / 2, 160, width - 118, 1, 0x67b7a8, 0.32));
-    this.addToPanel(this.addReadableText(width / 2, 190,
-      "はじまりの地下道 B1F〜B5F\n清掃率80%以上で出口が開きます。\n素材を持ち帰って道具を整えましょう。",
+    this.addToPanel(this.add.rectangle(width / 2, 156, width - 118, 1, 0x67b7a8, 0.32));
+    this.addToPanel(this.addReadableText(width / 2, 180,
+      "清掃率80%以上で出口が開きます。\nB5Fを片付けると次の現場が解放されます。",
       14,
       "#fff4df",
       { align: "center", lineSpacing: 7, origin: [0.5, 0.5], wordWrapWidth: width - 62, strokeThickness: 1 }
     ));
 
-    this.addToPanel(this.add.image(width / 2 - 94, 278, ASSET_KEYS.player.cleaner).setDisplaySize(46, 62));
-    this.addToPanel(this.add.image(width / 2, 278, ASSET_KEYS.debris.brokenChest).setDisplaySize(58, 42));
-    this.addToPanel(this.add.image(width / 2 + 96, 278, ASSET_KEYS.dungeon.exitOpen).setDisplaySize(50, 62));
-
-    this.createButton(width / 2, height - 282, 292, 56, "はじまりの地下道へ", 0xb9772c, () => {
-      this.scene.start("DungeonScene", { floor: 1 });
-    }, 17);
+    DUNGEON_ORDER.forEach((dungeonId, index) => {
+      const dungeon = DUNGEONS[dungeonId];
+      const unlocked = this.isDungeonUnlocked(dungeonId);
+      const y = 242 + index * 62;
+      const label = unlocked ? `${dungeon.name}へ` : `${dungeon.name} 未解放`;
+      this.createButton(width / 2, y, 304, 52, label, unlocked ? dungeon.theme.wallTint : 0x252b35, () => {
+        if (!unlocked) {
+          this.messageText.setText(dungeon.unlockText);
+          return;
+        }
+        this.scene.start("DungeonScene", { floor: 1, dungeonId });
+      }, 15);
+    });
     this.createButton(width / 2, height - 218, 292, 46, "操作UIを左右反転", 0x365b64, () => this.toggleControls(), 15);
     this.createButton(width / 2, height - 162, 292, 44, "タイトルへ", 0x1c2230, () => this.scene.start("TitleScene"), 15);
-    this.messageText.setText("素材を持ち帰り、ショップで強化。");
+    this.messageText.setText("B5Fクリアで次の清掃現場が開きます。");
   }
 
   private showInventory(): void {
     const { width, height } = this.scale;
-    const capacity = getBagCapacity(this.save.player.bagLevel);
+    const capacity = getBagCapacity(this.save.player.bagLevel, this.save.player.craftedItems);
     const count = getInventoryCount(this.save.inventory);
     const value = getInventoryValue(this.save.inventory);
     this.addToPanel(this.addReadableText(width / 2, 132, `持ち物・倉庫 ${count}/${capacity}`, 18, "#f8e7c7", {
@@ -210,37 +215,42 @@ export class BaseScene extends Phaser.Scene {
       origin: [0.5, 0.5],
       strokeThickness: 1
     }));
-    const steps = ["B1F", "B2F", "B3F", "B4F", "B5F"];
-    steps.forEach((label, index) => {
-      const x = 54 + index * ((width - 108) / 4);
-      this.addToPanel(this.add.circle(x, 210, 22, index === 4 ? 0x3a8b75 : 0x151c27, 0.96).setStrokeStyle(1, index === 4 ? 0xe2b56f : 0x67b7a8, 0.78));
-      this.addToPanel(this.addReadableText(x, 210, label, 12, "#fff4df", {
+    DUNGEON_ORDER.forEach((dungeonId, index) => {
+      const dungeon = DUNGEONS[dungeonId];
+      const unlocked = this.isDungeonUnlocked(dungeonId);
+      const y = 186 + index * 74;
+      this.addToPanel(this.addPanel(width / 2, y, width - 58, 58, unlocked ? 0x111720 : 0x161820, 0.78, dungeon.theme.accent, unlocked ? 0.34 : 0.12));
+      this.addToPanel(this.add.rectangle(54, y, 3, 38, unlocked ? dungeon.theme.ambient : 0x4f6470, 0.62));
+      this.addToPanel(this.addReadableText(68, y - 13, `${index + 1}. ${dungeon.name}`, 14, unlocked ? "#fff4df" : "#8c8274", {
         fontStyle: "600",
-        origin: [0.5, 0.5],
+        origin: [0, 0.5],
         strokeThickness: 1
       }));
-      if (index < steps.length - 1) {
-        this.addToPanel(this.add.rectangle(x + ((width - 108) / 8), 210, (width - 108) / 4 - 48, 2, 0x67b7a8, 0.42));
-      }
+      this.addToPanel(this.addReadableText(68, y + 11, unlocked ? dungeon.description : dungeon.unlockText, 12, unlocked ? "#ffe0a3" : "#8c8274", {
+        origin: [0, 0.5],
+        wordWrapWidth: width - 112,
+        strokeThickness: 1
+      }));
     });
-    this.addToPanel(this.addReadableText(width / 2, 292,
-      "出撃ごとに開始位置、残骸、危険物、\n出口候補が変わります。\nB5Fが最奥地。途中で拠点へ戻れます。",
+    this.addToPanel(this.addReadableText(width / 2, 426,
+      "各現場はB1F〜B5F構成。\n最奥B5Fを清掃して帰還すると次の現場が開きます。",
       14,
       "#fff4df",
       { align: "center", lineSpacing: 7, origin: [0.5, 0.5], wordWrapWidth: width - 60, strokeThickness: 1 }
     ));
-    this.messageText.setText("地下道は出撃ごとに少し変化します。");
+    this.messageText.setText("現場ごとに残骸、危険物、床の雰囲気が変わります。");
   }
 
   private showRequests(): void {
     const { width } = this.scale;
     const inventoryCount = getInventoryCount(this.save.inventory);
+    const nextLocked = DUNGEON_ORDER.find((id) => !this.isDungeonUnlocked(id));
     const request =
-      this.save.progress.runs < 1
-        ? "初回清掃: 素材を3個持ち帰る"
-        : inventoryCount < 6
-          ? "倉庫整理: 素材を合計6個保管する"
-          : "最奥挑戦: B5Fまで進んで帰還する";
+      nextLocked
+        ? `${DUNGEONS[this.getPreviousDungeon(nextLocked)].name} B5Fを清掃して\n${DUNGEONS[nextLocked].name}を解放する`
+        : inventoryCount < 10
+          ? "倉庫整理: 素材を合計10個保管する"
+          : "道具生産: ショップで新しい清掃道具を作る";
     this.addToPanel(this.addReadableText(width / 2, 136, "依頼", 18, "#f8e7c7", {
       fontStyle: "600",
       origin: [0.5, 0.5],
@@ -276,23 +286,38 @@ export class BaseScene extends Phaser.Scene {
       origin: [0.5, 0.5],
       strokeThickness: 1
     }));
-    this.createButton(width / 2, 172, 304, 42, `ほうき強化 ${getBroomUpgradeCost(this.save.player.broomLevel)}G`, 0x526f43, () => this.spendGold("broom"), 14);
-    this.createButton(width / 2, 222, 304, 42, `バッグ強化 ${getBagUpgradeCost(this.save.player.bagLevel)}G`, 0x365b64, () => this.spendGold("bag"), 14);
-    this.createButton(width / 2, 272, 304, 42, `追い払い強化 ${getAttackUpgradeCost(this.save.player.attackLevel)}G`, 0x74404a, () => this.spendGold("attack"), 14);
-    this.createButton(width / 2, 322, 304, 42, `スタミナ強化 ${getStaminaUpgradeCost(this.save.player.staminaLevel)}G`, 0x4a6a4a, () => this.spendGold("stamina"), 14);
-    this.createButton(width / 2, height - 206, 304, 42, this.save.player.craftedBroom ? "強化ほうき 生産済み" : "強化ほうき生産 石材2 木片2", 0x745732, () => this.craft("broom"), 14);
-    this.createButton(width / 2, height - 156, 304, 42, this.save.player.craftedWeapon ? "作業道具 生産済み" : "作業道具生産 金属片1 木片2", 0x745732, () => this.craft("weapon"), 14);
-    this.messageText.setText("強化は清掃力、容量、対処力、行動継続に直結します。");
+    this.addToPanel(this.addReadableText(width / 2, 154, "強化", 14, "#ffe0a3", {
+      fontStyle: "600",
+      origin: [0.5, 0.5],
+      strokeThickness: 1
+    }));
+    SHOP_UPGRADES.forEach((upgrade, index) => {
+      const level = upgrade.getLevel(this.save.player);
+      this.createButton(width / 2, 188 + index * 46, 304, 40, `${upgrade.name} Lv.${level} ${upgrade.getCost(level)}G`, upgrade.color, () => this.spendGold(upgrade.id), 13);
+    });
+
+    this.addToPanel(this.addReadableText(width / 2, 378, `生産 ${this.craftPage + 1}/${this.getCraftPageCount()}`, 14, "#ffe0a3", {
+      fontStyle: "600",
+      origin: [0.5, 0.5],
+      strokeThickness: 1
+    }));
+    const start = this.craftPage * RECIPES_PER_PAGE;
+    CRAFT_RECIPES.slice(start, start + RECIPES_PER_PAGE).forEach((recipe, index) => {
+      const crafted = this.save.player.craftedItems.includes(recipe.id);
+      const label = crafted
+        ? `${recipe.name} 生産済み / ${recipe.description}`
+        : `${recipe.name} ${this.formatNeeds(recipe.needs)}`;
+      this.createButton(width / 2, 416 + index * 46, 304, 40, label, crafted ? 0x2f3f35 : recipe.color, () => this.craft(recipe.id), 12);
+    });
+    this.createButton(width / 2 - 82, height - 156, 132, 40, "前の生産", 0x1c2230, () => this.changeCraftPage(-1), 13);
+    this.createButton(width / 2 + 82, height - 156, 132, 40, "次の生産", 0x1c2230, () => this.changeCraftPage(1), 13);
+    this.messageText.setText("強化はお金、生産は素材で常時効果が増えます。");
   }
 
   private spendGold(kind: UpgradeKind): void {
-    const costs: Record<UpgradeKind, number> = {
-      broom: getBroomUpgradeCost(this.save.player.broomLevel),
-      bag: getBagUpgradeCost(this.save.player.bagLevel),
-      attack: getAttackUpgradeCost(this.save.player.attackLevel),
-      stamina: getStaminaUpgradeCost(this.save.player.staminaLevel)
-    };
-    const cost = costs[kind];
+    const upgrade = SHOP_UPGRADES.find((entry) => entry.id === kind);
+    if (!upgrade) return;
+    const cost = upgrade.getCost(upgrade.getLevel(this.save.player));
     if (this.save.player.money < cost) {
       this.messageText.setText(`あと ${cost - this.save.player.money}G 必要です。`);
       return;
@@ -307,26 +332,27 @@ export class BaseScene extends Phaser.Scene {
     this.messageText.setText("道具を整えました。次の清掃が少し楽になります。");
   }
 
-  private craft(kind: "broom" | "weapon"): void {
-    const needs: Partial<Record<ItemId, number>> = kind === "broom" ? { stone: 2, wood: 2 } : { metal: 1, wood: 2 };
-    const already = kind === "broom" ? this.save.player.craftedBroom : this.save.player.craftedWeapon;
-    if (already) {
+  private craft(recipeId: CraftItemId): void {
+    const recipe = CRAFT_RECIPES.find((entry) => entry.id === recipeId);
+    if (!recipe) return;
+    if (this.save.player.craftedItems.includes(recipe.id)) {
       this.messageText.setText("もう生産済みです。");
       return;
     }
-    const missing = Object.entries(needs).find(([id, count]) => this.save.inventory[id as ItemId] < (count ?? 0));
+    const missing = Object.entries(recipe.needs).find(([id, count]) => this.save.inventory[id as ItemId] < (count ?? 0));
     if (missing) {
       this.messageText.setText(`${ITEMS[missing[0] as ItemId].name}が足りません。`);
       return;
     }
-    Object.entries(needs).forEach(([id, count]) => {
+    Object.entries(recipe.needs).forEach(([id, count]) => {
       this.save.inventory[id as ItemId] -= count ?? 0;
     });
-    if (kind === "broom") this.save.player.craftedBroom = true;
-    if (kind === "weapon") this.save.player.craftedWeapon = true;
+    this.save.player.craftedItems.push(recipe.id);
+    if (recipe.id === "reinforced_broom") this.save.player.craftedBroom = true;
+    if (recipe.id === "work_tool") this.save.player.craftedWeapon = true;
     saveGame(this.save);
     this.showTab("shop");
-    this.messageText.setText(kind === "broom" ? "強化ほうきを生産しました。" : "作業道具を生産しました。");
+    this.messageText.setText(`${recipe.name}を生産しました。${recipe.description}`);
   }
 
   private sellInventory(value: number): void {
@@ -394,13 +420,38 @@ export class BaseScene extends Phaser.Scene {
   }
 
   private refreshStatus(): void {
-    const capacity = getBagCapacity(this.save.player.bagLevel);
+    const capacity = getBagCapacity(this.save.player.bagLevel, this.save.player.craftedItems);
     const count = getInventoryCount(this.save.inventory);
     this.statusText.setText(
       `所持金 ${this.save.player.money}G / 素材 ${count}/${capacity} / 出動 ${this.save.progress.runs}回\n` +
       `ほうきLv.${this.save.player.broomLevel} バッグLv.${this.save.player.bagLevel} ` +
       `払うLv.${this.save.player.attackLevel} スタミナLv.${this.save.player.staminaLevel}`
     );
+  }
+
+  private isDungeonUnlocked(dungeonId: DungeonId): boolean {
+    return this.save.progress.unlockedDungeons.includes(dungeonId);
+  }
+
+  private getPreviousDungeon(dungeonId: DungeonId): DungeonId {
+    const index = Math.max(0, DUNGEON_ORDER.indexOf(dungeonId) - 1);
+    return DUNGEON_ORDER[index];
+  }
+
+  private getCraftPageCount(): number {
+    return Math.ceil(CRAFT_RECIPES.length / RECIPES_PER_PAGE);
+  }
+
+  private changeCraftPage(delta: number): void {
+    const pageCount = this.getCraftPageCount();
+    this.craftPage = (this.craftPage + delta + pageCount) % pageCount;
+    this.showTab("shop");
+  }
+
+  private formatNeeds(needs: Partial<Record<ItemId, number>>): string {
+    return Object.entries(needs)
+      .map(([id, count]) => `${ITEMS[id as ItemId].name}${count}`)
+      .join(" ");
   }
 
   private refreshTabs(): void {

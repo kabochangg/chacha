@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { ASSET_KEYS } from "../data/assets";
+import { getDungeon, type DungeonData, type DungeonId } from "../data/dungeons";
 import { ITEMS, type ItemId, getInventoryCount, getInventoryValue } from "../data/items";
 import { getAttackPower, getBagCapacity, getCleaningPower, getMaxStamina } from "../data/upgrades";
 import { loadSave, type SaveData } from "../systems/SaveSystem";
@@ -90,6 +91,7 @@ type HudBar = {
 };
 
 type DungeonRunState = {
+  dungeonId?: DungeonId;
   floor?: number;
   runInventory?: Record<ItemId, number>;
   materialDropsSpawned?: number;
@@ -186,6 +188,8 @@ export class DungeonScene extends Phaser.Scene {
   private discardAmounts: Record<ItemId, number> = { stone: 1, wood: 1, slime: 1, ash: 1, metal: 1 };
   private audioContext?: AudioContext;
   private save!: SaveData;
+  private dungeon!: DungeonData;
+  private dungeonId: DungeonId = "beginner_cave";
   private floor = 1;
   private maxFloor = 5;
   private startTile = { x: 2.5, y: 2.5 };
@@ -196,6 +200,8 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   init(data?: DungeonRunState): void {
+    this.dungeon = getDungeon(data?.dungeonId);
+    this.dungeonId = this.dungeon.id;
     this.floor = Phaser.Math.Clamp(Number(data?.floor ?? 1), 1, this.maxFloor);
     this.runInventory = this.cloneInventory(data?.runInventory);
     this.materialDropsSpawned = Number(data?.materialDropsSpawned ?? 0);
@@ -225,7 +231,7 @@ export class DungeonScene extends Phaser.Scene {
       this.controls?.destroy();
     });
 
-    this.cameras.main.setBackgroundColor("#11141a");
+    this.cameras.main.setBackgroundColor(this.dungeon.theme.background);
     this.physics.world.setBounds(0, 0, MAP_WIDTH * TILE, MAP_HEIGHT * TILE);
     if (this.runStartedAt <= 0) this.runStartedAt = this.time.now;
 
@@ -361,14 +367,17 @@ export class DungeonScene extends Phaser.Scene {
   private createDungeon(walls: Phaser.Physics.Arcade.StaticGroup): void {
     for (let y = 0; y < MAP_HEIGHT; y += 1) {
       for (let x = 0; x < MAP_WIDTH; x += 1) {
-        const color = (x + y) % 2 === 0 ? 0x24252c : 0x2a2a31;
+        const color = (x + y) % 2 === 0 ? this.dungeon.theme.floorA : this.dungeon.theme.floorB;
         this.add.rectangle(x * TILE + TILE / 2, y * TILE + TILE / 2, TILE - 2, TILE - 2, color);
         this.add.image(x * TILE + TILE / 2, y * TILE + TILE / 2, ASSET_KEYS.dungeon.floorStone)
           .setDisplaySize(TILE, TILE)
-          .setAlpha(0.24)
+          .setTint(this.dungeon.theme.floorTint)
+          .setAlpha(this.dungeon.theme.floorAlpha)
           .setDepth(0);
       }
     }
+    this.add.rectangle(MAP_WIDTH * TILE / 2, MAP_HEIGHT * TILE / 2, MAP_WIDTH * TILE, MAP_HEIGHT * TILE, this.dungeon.theme.ambient, 0.035)
+      .setDepth(1);
 
     for (let x = 0; x < MAP_WIDTH; x += 1) {
       this.addWall(walls, x, 0);
@@ -395,8 +404,9 @@ export class DungeonScene extends Phaser.Scene {
       [8, 17], [13, 16], [6, 16], [16, 6]
     ]).slice(0, 16 + this.floor);
     debrisTiles.forEach(([x, y], index) => {
-      const kindIndex = (index + this.floor + Phaser.Math.Between(0, DEBRIS_KINDS.length - 1)) % DEBRIS_KINDS.length;
-      this.addDebris(x, y, DEBRIS_KINDS[kindIndex]);
+      const itemId = this.dungeon.debrisWeights[(index + this.floor + Phaser.Math.Between(0, this.dungeon.debrisWeights.length - 1)) % this.dungeon.debrisWeights.length];
+      const kind = DEBRIS_KINDS.find((entry) => entry.item === itemId) ?? DEBRIS_KINDS[0];
+      this.addDebris(x, y, kind);
     });
     this.totalDebris += debrisTiles.length;
 
@@ -406,9 +416,8 @@ export class DungeonScene extends Phaser.Scene {
       [6, 9], [13, 10], [15, 6], [4, 14], [11, 15], [3, 7], [15, 14]
     ]);
     const enemyCount = this.getEnemyCountForFloor();
-    const enemyDrops: ItemId[] = ["slime", "ash", "metal"];
     enemyTiles.slice(0, enemyCount).forEach(([x, y], index) => {
-      this.addEnemy(x, y, index % 2 === 0 ? "loop" : "wave", enemyDrops[index % enemyDrops.length]);
+      this.addEnemy(x, y, index % 2 === 0 ? "loop" : "wave", this.dungeon.enemyDrops[index % this.dungeon.enemyDrops.length]);
     });
     this.createExit();
   }
@@ -456,11 +465,12 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private addWall(walls: Phaser.Physics.Arcade.StaticGroup, tileX: number, tileY: number): void {
-    const wall = this.add.rectangle(tileX * TILE + TILE / 2, tileY * TILE + TILE / 2, TILE, TILE, 0x413427)
-      .setStrokeStyle(2, 0x69513a, 0.8)
+    const wall = this.add.rectangle(tileX * TILE + TILE / 2, tileY * TILE + TILE / 2, TILE, TILE, this.dungeon.theme.wallTint)
+      .setStrokeStyle(2, this.dungeon.theme.wallStroke, 0.8)
       .setAlpha(0.12);
     this.add.image(wall.x, wall.y, ASSET_KEYS.dungeon.wallStone)
       .setDisplaySize(TILE + 3, TILE + 3)
+      .setTint(this.dungeon.theme.wallTint)
       .setAlpha(0.9)
       .setDepth(5);
     walls.add(wall);
@@ -557,7 +567,7 @@ export class DungeonScene extends Phaser.Scene {
     enemy.originY = enemy.y;
     enemy.phase = Phaser.Math.FloatBetween(0, Math.PI * 2);
     enemy.pattern = pattern;
-    enemy.hp = 2 + Math.floor(this.floor / 3);
+    enemy.hp = 2 + Math.floor(this.floor / 3) + this.dungeon.enemyHpBonus;
     enemy.maxHp = enemy.hp;
     enemy.dropItem = dropItem;
     enemy.visual = visual;
@@ -583,7 +593,8 @@ export class DungeonScene extends Phaser.Scene {
     this.exitVisual = this.add.image(this.exitZone.x, this.exitZone.y, ASSET_KEYS.dungeon.exit)
       .setDisplaySize(42, 58)
       .setDepth(14);
-    this.exitGlow = this.add.ellipse(this.exitZone.x, this.exitZone.y + 2, 62, 70, 0x7ce59a, 0.2)
+    const lanternBonus = this.save.player.craftedItems.includes("small_lantern");
+    this.exitGlow = this.add.ellipse(this.exitZone.x, this.exitZone.y + 2, lanternBonus ? 78 : 62, lanternBonus ? 88 : 70, this.dungeon.theme.exitGlow, lanternBonus ? 0.3 : 0.2)
       .setStrokeStyle(2, 0xc6ffd0, 0.45);
     this.exitArrow = this.add.triangle(this.exitZone.x, this.exitZone.y - 48, 0, 0, 34, 0, 17, 24, 0xfff0a8, 0.95)
       .setStrokeStyle(2, 0x4c3819, 0.8);
@@ -728,7 +739,7 @@ export class DungeonScene extends Phaser.Scene {
     }
 
     const previousHp = target.debrisHp;
-    target.debrisHp -= (delta / 320) * getCleaningPower(this.save.player.broomLevel);
+    target.debrisHp -= (delta / 320) * getCleaningPower(this.save.player.broomLevel, this.save.player.craftedItems, target.itemId);
     const progress = Phaser.Math.Clamp(1 - target.debrisHp / target.maxDebrisHp, 0, 1);
     this.drawCleaningRing(target.x, target.y, progress);
     this.animateDebrisCleaning(target, progress);
@@ -838,7 +849,7 @@ export class DungeonScene extends Phaser.Scene {
       return;
     }
 
-    hit.hp -= getAttackPower(this.save.player.attackLevel, this.save.player.craftedWeapon);
+    hit.hp -= getAttackPower(this.save.player.attackLevel, this.save.player.craftedWeapon, this.save.player.craftedItems);
     this.cameras.main.shake(70, 0.004);
     hit.visual.setScale(1.16);
     this.tweens.add({ targets: hit.visual, scale: 1, duration: 110, ease: "Back.easeOut" });
@@ -1053,7 +1064,7 @@ export class DungeonScene extends Phaser.Scene {
 
   private collectMaterial(material: MaterialObject): void {
     if (material.collected) return;
-    const capacity = getBagCapacity(this.save.player.bagLevel);
+    const capacity = getBagCapacity(this.save.player.bagLevel, this.save.player.craftedItems);
     if (getInventoryCount(this.runInventory) >= capacity) {
       this.showInfo("バッグがいっぱい。出口へ戻ろう。", 900);
       this.playTone(120, 0.08, "square", 0.035);
@@ -1186,7 +1197,13 @@ export class DungeonScene extends Phaser.Scene {
     const enemyHit = this.enemies.some((enemy) => Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y) < 34);
     const trapHit = this.traps.some((trap) => Phaser.Math.Distance.Between(this.player.x, this.player.y, trap.body.x, trap.body.y) < 34);
     if (!enemyHit && !trapHit) return;
-    const damage = enemyHit ? 12 : 8;
+    const baseDamage = enemyHit ? 12 : 8;
+    const dungeonMitigation =
+      (this.dungeonId === "ash_forge" && this.save.player.craftedItems.includes("ash_gloves")) ||
+      (this.dungeonId === "moss_waterway" && this.save.player.craftedItems.includes("grip_boots"))
+        ? 0.72
+        : 1;
+    const damage = Math.max(1, Math.ceil(baseDamage * this.dungeon.trapDamageMultiplier * dungeonMitigation));
     this.hp = Math.max(0, this.hp - damage);
     this.damageTaken += damage;
     this.lastDamageAt = time;
@@ -1219,7 +1236,7 @@ export class DungeonScene extends Phaser.Scene {
     this.pauseLayer?.destroy();
     const inventoryText = this.formatInventory(this.runInventory);
     const cleanRate = Math.floor(this.getCleanRate() * 100);
-    const capacity = getBagCapacity(this.save.player.bagLevel);
+    const capacity = getBagCapacity(this.save.player.bagLevel, this.save.player.craftedItems);
     const materialCount = getInventoryCount(this.runInventory);
     const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(160);
     const centerX = width / 2;
@@ -1268,7 +1285,7 @@ export class DungeonScene extends Phaser.Scene {
     this.pauseLayer?.destroy();
 
     const cleanRate = Math.floor(this.getCleanRate() * 100);
-    const capacity = getBagCapacity(this.save.player.bagLevel);
+    const capacity = getBagCapacity(this.save.player.bagLevel, this.save.player.craftedItems);
     const materialCount = getInventoryCount(this.runInventory);
     const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(160);
     const centerX = width / 2;
@@ -1348,7 +1365,7 @@ export class DungeonScene extends Phaser.Scene {
     this.player.body.setVelocity(0, 0);
     this.pauseLayer?.destroy();
 
-    const capacity = getBagCapacity(this.save.player.bagLevel);
+    const capacity = getBagCapacity(this.save.player.bagLevel, this.save.player.craftedItems);
     const materialCount = getInventoryCount(this.runInventory);
     const panel = this.add.container(0, 0).setScrollFactor(0).setDepth(160);
     const centerX = width / 2;
@@ -1497,9 +1514,9 @@ export class DungeonScene extends Phaser.Scene {
 
   private refreshHud(nearExit: boolean): void {
     const inventoryCount = getInventoryCount(this.runInventory);
-    const capacity = getBagCapacity(this.save.player.bagLevel);
+    const capacity = getBagCapacity(this.save.player.bagLevel, this.save.player.craftedItems);
     const cleanRate = Math.floor(this.getCleanRate() * 100);
-    this.hudText.setText(`はじまりの地下道 B${this.floor}F${this.floor === this.maxFloor ? " 最奥地" : ""}`);
+    this.hudText.setText(`${this.dungeon.name} B${this.floor}F${this.floor === this.maxFloor ? " 最奥地" : ""}`);
     this.updateHudBar(this.hpBar, this.hp / 100, `HP ${Math.ceil(this.hp)}`);
     this.updateHudBar(this.staminaBar, this.stamina / this.maxStamina, `STM ${Math.ceil(this.stamina)}`);
     this.updateHudBar(this.bagBar, inventoryCount / capacity, `素材 ${inventoryCount}/${capacity}`);
@@ -1527,6 +1544,9 @@ export class DungeonScene extends Phaser.Scene {
     const totalCleanScore = this.totalDebris > 0 ? (this.cleaned / this.totalDebris) * 100 : this.cleanScore;
     const totalCleanRate = Phaser.Math.Clamp(totalCleanScore / 100, 0, 1);
     const result: RunResult = {
+      dungeonId: this.dungeonId,
+      floorReached: this.floor,
+      completedDungeon: cleared && !retreated && this.floor >= this.maxFloor,
       cleared,
       retreated,
       cleaned: this.cleaned,
@@ -1545,6 +1565,7 @@ export class DungeonScene extends Phaser.Scene {
     this.finished = true;
     this.scene.restart({
       floor: this.floor + 1,
+      dungeonId: this.dungeonId,
       runInventory: this.cloneInventory(this.runInventory),
       materialDropsSpawned: this.materialDropsSpawned,
       runStartedAt: this.runStartedAt,

@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { ASSET_KEYS } from "../data/assets";
+import { DUNGEONS } from "../data/dungeons";
 import { ITEMS, type ItemId } from "../data/items";
 import { loadSave, saveGame } from "../systems/SaveSystem";
 import type { RunResult } from "../types";
@@ -47,7 +48,9 @@ export class ResultScene extends Phaser.Scene {
       stroke: "#120b0c",
       strokeThickness: 3
     }).setOrigin(0.5);
+    const dungeon = DUNGEONS[this.result.dungeonId];
     this.add.text(width / 2, 185,
+      `${dungeon.name} B${this.result.floorReached}F\n` +
       `清掃率 ${cleanRate}% (${this.result.cleaned}/${this.result.totalDebris})\n` +
       `売却見込み ${this.result.earnedMoney}G / 被ダメ ${this.result.damageTaken}`,
       {
@@ -77,7 +80,7 @@ export class ResultScene extends Phaser.Scene {
 
     this.createButton(width / 2, height - 222, 286, 60, "換金してもう一回", 0xd8913d, () => {
       this.applyRunReward("sell");
-      this.scene.start("DungeonScene", { floor: 1 });
+      this.scene.start("DungeonScene", { floor: 1, dungeonId: this.result.dungeonId });
     });
     this.createButton(width / 2, height - 150, 286, 56, "倉庫へ収納して拠点へ", 0x4e6b7d, () => {
       this.applyRunReward("store");
@@ -99,6 +102,13 @@ export class ResultScene extends Phaser.Scene {
     } else {
       for (const [id, count] of Object.entries(this.result.inventory)) {
         save.inventory[id as ItemId] += count;
+      }
+    }
+
+    if (this.result.completedDungeon) {
+      const nextDungeon = DUNGEONS[this.result.dungeonId].nextDungeonId;
+      if (nextDungeon && !save.progress.unlockedDungeons.includes(nextDungeon)) {
+        save.progress.unlockedDungeons.push(nextDungeon);
       }
     }
 

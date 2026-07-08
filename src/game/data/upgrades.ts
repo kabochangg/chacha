@@ -1,17 +1,26 @@
-export function getCleaningPower(broomLevel: number): number {
-  return Math.max(1, broomLevel);
+import { getCraftedBonus } from "./shop";
+
+export function getCleaningPower(broomLevel: number, craftedItems: string[] = [], itemId?: string): number {
+  const bonus = getCraftedBonus(craftedItems);
+  const itemBonus =
+    (itemId === "slime" && craftedItems.includes("moss_brush")) ||
+    (itemId === "ash" && craftedItems.includes("ash_brush")) ||
+    (itemId === "stone" && craftedItems.includes("stone_scraper"))
+      ? 0.7
+      : 0;
+  return Math.max(1, broomLevel) + bonus.cleaningPower + itemBonus;
 }
 
-export function getAttackPower(attackLevel: number, craftedWeapon: boolean): number {
-  return Math.max(1, attackLevel) + (craftedWeapon ? 1 : 0);
+export function getAttackPower(attackLevel: number, craftedWeapon: boolean, craftedItems: string[] = []): number {
+  return Math.max(1, attackLevel) + (craftedWeapon ? 1 : 0) + getCraftedBonus(craftedItems).attackPower;
 }
 
 export function getMaxStamina(staminaLevel: number): number {
   return 100 + Math.max(0, staminaLevel - 1) * 18;
 }
 
-export function getBagCapacity(bagLevel: number): number {
-  return 40 + Math.max(0, bagLevel - 1) * 10;
+export function getBagCapacity(bagLevel: number, craftedItems: string[] = []): number {
+  return 40 + Math.max(0, bagLevel - 1) * 10 + getCraftedBonus(craftedItems).bagCapacity;
 }
 
 export function getBroomUpgradeCost(level: number): number {

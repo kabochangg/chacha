@@ -1,6 +1,10 @@
 import type { ItemId } from "./data/items";
+import type { DungeonId } from "./data/dungeons";
 
 export type RunResult = {
+  dungeonId: DungeonId;
+  floorReached: number;
+  completedDungeon: boolean;
   cleared: boolean;
   retreated: boolean;
   cleaned: number;

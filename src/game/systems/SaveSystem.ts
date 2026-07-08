@@ -1,4 +1,6 @@
 import type { ItemId } from "../data/items";
+import { normalizeUnlockedDungeons, type DungeonId } from "../data/dungeons";
+import { isCraftItemId, type CraftItemId } from "../data/shop";
 
 export type SaveData = {
   version: "0.1.0";
@@ -10,10 +12,11 @@ export type SaveData = {
     staminaLevel: number;
     craftedBroom: boolean;
     craftedWeapon: boolean;
+    craftedItems: CraftItemId[];
   };
   inventory: Record<ItemId, number>;
   progress: {
-    unlockedDungeons: string[];
+    unlockedDungeons: DungeonId[];
     lastPlayedAt: string;
     runs: number;
   };
@@ -37,7 +40,8 @@ export function createDefaultSave(): SaveData {
       attackLevel: 1,
       staminaLevel: 1,
       craftedBroom: false,
-      craftedWeapon: false
+      craftedWeapon: false,
+      craftedItems: []
     },
     inventory: {
       stone: 0,
@@ -67,6 +71,14 @@ export function loadSave(): SaveData {
 
     const parsed = JSON.parse(raw) as Partial<SaveData>;
     const fallback = createDefaultSave();
+    const legacyCraftedItems = [
+      ...(parsed.player?.craftedBroom ? ["reinforced_broom"] : []),
+      ...(parsed.player?.craftedWeapon ? ["work_tool"] : [])
+    ];
+    const craftedItems = Array.from(new Set([
+      ...legacyCraftedItems,
+      ...((parsed.player?.craftedItems ?? []).filter(isCraftItemId))
+    ])) as CraftItemId[];
 
     return {
       version: "0.1.0",
@@ -77,7 +89,8 @@ export function loadSave(): SaveData {
         attackLevel: Number(parsed.player?.attackLevel ?? fallback.player.attackLevel),
         staminaLevel: Number(parsed.player?.staminaLevel ?? fallback.player.staminaLevel),
         craftedBroom: Boolean(parsed.player?.craftedBroom ?? fallback.player.craftedBroom),
-        craftedWeapon: Boolean(parsed.player?.craftedWeapon ?? fallback.player.craftedWeapon)
+        craftedWeapon: Boolean(parsed.player?.craftedWeapon ?? fallback.player.craftedWeapon),
+        craftedItems
       },
       inventory: {
         stone: Number(parsed.inventory?.stone ?? 0),
@@ -87,7 +100,7 @@ export function loadSave(): SaveData {
         metal: Number(parsed.inventory?.metal ?? 0)
       },
       progress: {
-        unlockedDungeons: parsed.progress?.unlockedDungeons ?? fallback.progress.unlockedDungeons,
+        unlockedDungeons: normalizeUnlockedDungeons(parsed.progress?.unlockedDungeons),
         lastPlayedAt: parsed.progress?.lastPlayedAt ?? fallback.progress.lastPlayedAt,
         runs: Number(parsed.progress?.runs ?? 0)
       },
