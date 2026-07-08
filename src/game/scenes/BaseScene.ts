@@ -11,7 +11,13 @@ import { loadSave, saveGame, type SaveData } from "../systems/SaveSystem";
 type BaseTab = "home" | "inventory" | "map" | "requests" | "shop";
 
 const ITEM_IDS: ItemId[] = ["stone", "wood", "slime", "ash", "metal"];
-const RECIPES_PER_PAGE = 3;
+const MAX_RECIPES_PER_PAGE = 3;
+const UI_DARK = 0x140f0a;
+const UI_PANEL = 0x201813;
+const UI_PANEL_DARK = 0x17110e;
+const UI_ACCENT = 0xd8913d;
+const UI_ACCENT_DEEP = 0x6b4a24;
+const UI_MUTED_STROKE = 0x8a715b;
 
 export class BaseScene extends Phaser.Scene {
   private save!: SaveData;
@@ -32,12 +38,12 @@ export class BaseScene extends Phaser.Scene {
     saveGame(this.save);
 
     const { width, height } = this.scale;
-    this.cameras.main.setBackgroundColor("#050b0f");
+    this.cameras.main.setBackgroundColor("#140f0a");
     this.drawBaseBackdrop();
 
-    this.addPanel(width / 2, 58, width - 24, 92, 0x07161a, 0.92, 0x25f6d4, 0.34);
-    this.addEdgeFrame(width / 2, 58, width - 24, 92, 0x25f6d4, 0.34);
-    this.add.rectangle(28, 58, 4, 68, 0x25f6d4, 0.62);
+    this.addPanel(width / 2, 58, width - 24, 92, UI_PANEL, 0.92, UI_ACCENT, 0.38);
+    this.addEdgeFrame(width / 2, 58, width - 24, 92, UI_ACCENT, 0.36);
+    this.add.rectangle(28, 58, 4, 68, UI_ACCENT, 0.68);
     this.addReadableText(width / 2, 20, "清掃員の拠点", 20, "#f8e7c7", {
       fontStyle: "600",
       origin: [0.5, 0],
@@ -67,15 +73,15 @@ export class BaseScene extends Phaser.Scene {
 
   private drawBaseBackdrop(): void {
     const { width, height } = this.scale;
-    this.add.rectangle(width / 2, height / 2, width, height, 0x050b0f);
-    this.add.rectangle(width / 2, height / 2, width, height, 0x07161a, 0.72);
-    this.add.polygon(width * 0.12, height * 0.34, [0, 0, width * 0.72, -60, width * 0.66, -8, -28, 48], 0x12343a, 0.28);
-    this.add.polygon(width * 0.72, height * 0.78, [0, 0, width * 0.42, -40, width * 0.5, 10, 18, 66], 0x0a2f35, 0.3);
+    this.add.rectangle(width / 2, height / 2, width, height, UI_DARK);
+    this.add.rectangle(width / 2, height / 2, width, height, UI_PANEL, 0.72);
+    this.add.polygon(width * 0.12, height * 0.34, [0, 0, width * 0.72, -60, width * 0.66, -8, -28, 48], 0x4d3322, 0.28);
+    this.add.polygon(width * 0.72, height * 0.78, [0, 0, width * 0.42, -40, width * 0.5, 10, 18, 66], 0x3a2a1e, 0.3);
     for (let y = 122; y < height - 118; y += 56) {
-      this.add.rectangle(width / 2, y, width - 32, 1, 0x25f6d4, 0.07);
+      this.add.rectangle(width / 2, y, width - 32, 1, UI_ACCENT, 0.08);
     }
-    this.add.ellipse(width * 0.24, 118, 170, 120, 0x25f6d4, 0.075);
-    this.add.ellipse(width * 0.82, height - 156, 190, 126, 0x0bb49f, 0.06);
+    this.add.ellipse(width * 0.24, 118, 170, 120, UI_ACCENT, 0.1);
+    this.add.ellipse(width * 0.82, height - 156, 190, 126, 0x8a4f2a, 0.08);
     this.add.image(42, 132, ASSET_KEYS.player.broom)
       .setDisplaySize(28, 76)
       .setAngle(-28)
@@ -98,8 +104,8 @@ export class BaseScene extends Phaser.Scene {
     tabs.forEach(([tab, label], index) => {
       const x = 10 + tabWidth * index + tabWidth / 2;
       const y = height - 38;
-      const button = this.add.rectangle(x, y, tabWidth - 4, 50, 0x071219, 0.96)
-        .setStrokeStyle(1, 0x587578, 0.48)
+      const button = this.add.rectangle(x, y, tabWidth - 4, 50, UI_PANEL_DARK, 0.96)
+        .setStrokeStyle(1, UI_MUTED_STROKE, 0.5)
         .setInteractive({ useHandCursor: true });
       const text = this.addReadableText(x, y, label, width < 390 ? 11 : 12, "#f8e7c7", {
         fontStyle: "600",
@@ -125,10 +131,10 @@ export class BaseScene extends Phaser.Scene {
 
     const panelTop = 116;
     const panelHeight = height - 242;
-    const bg = this.addPanel(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, 0x07161a, 0.94, 0x25f6d4, 0.22);
+    const bg = this.addPanel(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, UI_PANEL, 0.94, UI_ACCENT, 0.24);
     this.panel.add(bg);
-    this.panel.add(this.createEdgeFrame(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, 0x25f6d4, 0.34));
-    this.panel.add(this.add.rectangle(28, panelTop + 38, 4, 54, 0x25f6d4, 0.58));
+    this.panel.add(this.createEdgeFrame(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, UI_ACCENT, 0.38));
+    this.panel.add(this.add.rectangle(28, panelTop + 38, 4, 54, UI_ACCENT, 0.62));
 
     if (tab === "home") this.showHome();
     if (tab === "inventory") this.showInventory();
@@ -186,9 +192,9 @@ export class BaseScene extends Phaser.Scene {
     ITEM_IDS.forEach((itemId, index) => {
       const item = ITEMS[itemId];
       const y = 174 + index * 54;
-      const row = this.addPanel(width / 2, y, width - 54, 46, 0x071219, 0.82, 0x25f6d4, 0.2);
+      const row = this.addPanel(width / 2, y, width - 54, 46, UI_PANEL_DARK, 0.82, UI_ACCENT, 0.22);
       this.addToPanel(row);
-      this.addToPanel(this.add.rectangle(40, y, 2, 28, 0x25f6d4, 0.38));
+      this.addToPanel(this.add.rectangle(40, y, 2, 28, UI_ACCENT, 0.42));
       this.addToPanel(this.add.image(44, y, item.iconKey).setDisplaySize(24, 24));
       this.addToPanel(this.addReadableText(66, y - 12, `${item.name} x${this.save.inventory[itemId]}`, 14, "#fff4df", {
         fontStyle: "600",
@@ -256,8 +262,8 @@ export class BaseScene extends Phaser.Scene {
       origin: [0.5, 0.5],
       strokeThickness: 1
     }));
-    this.addToPanel(this.addPanel(width / 2, 218, width - 58, 126, 0x071219, 0.82, 0x25f6d4, 0.28));
-    this.addToPanel(this.add.rectangle(54, 218, 3, 96, 0x25f6d4, 0.5));
+    this.addToPanel(this.addPanel(width / 2, 218, width - 58, 126, UI_PANEL_DARK, 0.82, UI_ACCENT, 0.3));
+    this.addToPanel(this.add.rectangle(54, 218, 3, 96, UI_ACCENT, 0.56));
     this.addToPanel(this.addReadableText(width / 2, 190, "今の目標", 16, "#ffe0a3", {
       fontStyle: "600",
       origin: [0.5, 0.5],
@@ -301,16 +307,18 @@ export class BaseScene extends Phaser.Scene {
       origin: [0.5, 0.5],
       strokeThickness: 1
     }));
-    const start = this.craftPage * RECIPES_PER_PAGE;
-    CRAFT_RECIPES.slice(start, start + RECIPES_PER_PAGE).forEach((recipe, index) => {
+    const recipesPerPage = this.getRecipesPerPage();
+    const start = this.craftPage * recipesPerPage;
+    CRAFT_RECIPES.slice(start, start + recipesPerPage).forEach((recipe, index) => {
       const crafted = this.save.player.craftedItems.includes(recipe.id);
       const label = crafted
         ? `${recipe.name} 生産済み / ${recipe.description}`
         : `${recipe.name} ${this.formatNeeds(recipe.needs)}`;
       this.createButton(width / 2, 416 + index * 46, 304, 40, label, crafted ? 0x2f3f35 : recipe.color, () => this.craft(recipe.id), 12);
     });
-    this.createButton(width / 2 - 82, height - 156, 132, 40, "前の生産", 0x1c2230, () => this.changeCraftPage(-1), 13);
-    this.createButton(width / 2 + 82, height - 156, 132, 40, "次の生産", 0x1c2230, () => this.changeCraftPage(1), 13);
+    const pageButtonY = Math.max(502, height - 156);
+    this.createButton(width / 2 - 82, pageButtonY, 132, 40, "前の生産", UI_PANEL_DARK, () => this.changeCraftPage(-1), 13);
+    this.createButton(width / 2 + 82, pageButtonY, 132, 40, "次の生産", UI_PANEL_DARK, () => this.changeCraftPage(1), 13);
     this.messageText.setText("強化はお金、生産は素材で常時効果が増えます。");
   }
 
@@ -392,9 +400,9 @@ export class BaseScene extends Phaser.Scene {
     fontSize = 17
   ): void {
     const button = this.add.rectangle(x, y, width, height, color, 0.92)
-      .setStrokeStyle(1, 0x25f6d4, 0.5)
+      .setStrokeStyle(1, UI_ACCENT, 0.52)
       .setInteractive({ useHandCursor: true });
-    const rail = this.add.rectangle(x - width / 2 + 5, y, 4, height - 10, 0x25f6d4, 0.62);
+    const rail = this.add.rectangle(x - width / 2 + 5, y, 4, height - 10, UI_ACCENT, 0.68);
     const shine = this.add.rectangle(x, y + height / 2 - 3, width - 22, 1, 0xffffff, 0.12);
     const text = this.addReadableText(x, y, label, fontSize, "#fff4df", {
       fontStyle: "500",
@@ -439,7 +447,14 @@ export class BaseScene extends Phaser.Scene {
   }
 
   private getCraftPageCount(): number {
-    return Math.ceil(CRAFT_RECIPES.length / RECIPES_PER_PAGE);
+    return Math.ceil(CRAFT_RECIPES.length / this.getRecipesPerPage());
+  }
+
+  private getRecipesPerPage(): number {
+    const { height } = this.scale;
+    if (height < 680) return 1;
+    if (height < 780) return 2;
+    return MAX_RECIPES_PER_PAGE;
   }
 
   private changeCraftPage(delta: number): void {
@@ -457,10 +472,10 @@ export class BaseScene extends Phaser.Scene {
   private refreshTabs(): void {
     for (const [tab, button] of this.tabButtons) {
       const active = tab === this.currentTab;
-      button.setFillStyle(active ? 0x073c39 : 0x071219, active ? 0.98 : 0.96);
-      button.setStrokeStyle(1, active ? 0x25f6d4 : 0x587578, active ? 0.86 : 0.48);
+      button.setFillStyle(active ? UI_ACCENT_DEEP : UI_PANEL_DARK, active ? 0.98 : 0.96);
+      button.setStrokeStyle(1, active ? UI_ACCENT : UI_MUTED_STROKE, active ? 0.86 : 0.48);
       const label = this.tabLabels.get(tab);
-      label?.setColor(active ? "#25f6d4" : "#c9d8d4");
+      label?.setColor(active ? "#ffd08a" : "#d7c4ad");
       label?.setStroke("#061113", 1);
     }
   }
