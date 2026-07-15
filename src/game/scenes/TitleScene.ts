@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { ASSET_KEYS } from "../data/assets";
 import { loadSave, resetSave } from "../systems/SaveSystem";
+import { DISPLAY_FONT, UI_FONT } from "../ui/theme";
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -44,22 +45,22 @@ export class TitleScene extends Phaser.Scene {
     this.add.image(width / 2 - 70, sceneY + 78, ASSET_KEYS.item.stone).setDisplaySize(26, 26).setAlpha(0.9);
     this.add.image(width / 2 + 72, sceneY + 76, ASSET_KEYS.item.slime).setDisplaySize(28, 28).setAlpha(0.9);
 
-    this.add.text(width / 2, titleY - (compact ? 42 : 56), "AFTER HEROES / CLEANUP LOG", {
-      fontFamily: "sans-serif",
+    this.add.text(width / 2, titleY - (compact ? 42 : 56), "AFTER HEROES  /  CLEANUP LOG", {
+      fontFamily: UI_FONT,
       fontSize: "10px",
       color: "#ffd08a",
       fontStyle: "500"
     }).setOrigin(0.5).setAlpha(0.9);
     this.add.text(width / 2, titleY, "勇者のあとしまつ", {
-      fontFamily: "sans-serif",
-      fontSize: width < 430 ? (compact ? "25px" : "27px") : "31px",
+      fontFamily: DISPLAY_FONT,
+      fontSize: width < 430 ? (compact ? "26px" : "29px") : "32px",
       color: "#fff6df",
       fontStyle: "700",
       stroke: "#061113",
       strokeThickness: 4
     }).setOrigin(0.5);
     this.add.text(width / 2, subtitleY, "ダンジョン清掃員の生活", {
-      fontFamily: "sans-serif",
+      fontFamily: UI_FONT,
       fontSize: compact ? "16px" : "18px",
       color: "#f0b45a",
       fontStyle: "600",
@@ -67,15 +68,16 @@ export class TitleScene extends Phaser.Scene {
       strokeThickness: 3
     }).setOrigin(0.5);
 
-    this.createButton(width / 2, firstButtonY, width - 108, compact ? 56 : 62, "はじめから", 0x6b4a24, "#ffd08a", () => {
+    const buttonWidth = Math.min(width - 52, 320);
+    this.createButton(width / 2, firstButtonY, buttonWidth, compact ? 58 : 64, "はじめから", 0x6b4a24, "#fff1cf", () => {
       resetSave();
       this.scene.start("BaseScene");
     });
-    this.createButton(width / 2, secondButtonY, width - 108, compact ? 52 : 56, `つづきから (${save.progress.runs}回)`, 0x0b1118, "#f1f7f4", () => {
+    this.createButton(width / 2, secondButtonY, buttonWidth, compact ? 54 : 58, `つづきから  ${save.progress.runs}回`, 0x111821, "#f1f7f4", () => {
       this.scene.start("BaseScene");
     });
     this.add.text(width / 2, height - 22, "v0.1.0", {
-      fontFamily: "sans-serif",
+      fontFamily: UI_FONT,
       fontSize: "12px",
       color: "#96aeb0"
     }).setOrigin(0.5);
@@ -88,7 +90,7 @@ export class TitleScene extends Phaser.Scene {
     this.add.rectangle(x - width / 2 + 4, y, 4, height - 12, 0xd8913d, 0.74);
     this.add.rectangle(x, y + height / 2 - 3, width - 20, 1, 0xffffff, 0.12);
     this.add.text(x, y, label, {
-      fontFamily: "sans-serif",
+      fontFamily: UI_FONT,
       fontSize: "19px",
       color: labelColor,
       fontStyle: "700",

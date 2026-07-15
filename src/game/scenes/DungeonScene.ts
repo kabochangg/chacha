@@ -7,6 +7,7 @@ import { loadSave, type SaveData } from "../systems/SaveSystem";
 import type { RunResult } from "../types";
 import { ActionControls } from "../ui/ActionControls";
 import { VirtualPad } from "../ui/VirtualPad";
+import { DISPLAY_FONT, UI_FONT } from "../ui/theme";
 
 const TILE = 48;
 const MAP_WIDTH = 18;
@@ -599,7 +600,7 @@ export class DungeonScene extends Phaser.Scene {
     this.exitArrow = this.add.triangle(this.exitZone.x, this.exitZone.y - 48, 0, 0, 34, 0, 17, 24, 0xfff0a8, 0.95)
       .setStrokeStyle(2, 0x4c3819, 0.8);
     this.exitLabel = this.add.text(this.exitZone.x, this.exitZone.y - 72, "出口", {
-      fontFamily: "sans-serif",
+      fontFamily: UI_FONT,
       fontSize: "18px",
       color: "#f9ffd8",
       fontStyle: "700",
@@ -651,7 +652,7 @@ export class DungeonScene extends Phaser.Scene {
       .setScale(Math.min((13 + broomLevel * 2) / 234, (35 + broomLevel * 3) / 296))
       .setOrigin(0.5, 0.2);
     const sprite = this.add.image(0, 0, ASSET_KEYS.player.cleaner)
-      .setScale(Math.min(33 / 283, 43 / 394));
+      .setScale(Math.min(39 / 283, 51 / 394));
     const root = this.add.container(x, y, [shadow, bag, broom, sprite]).setDepth(28);
     return { root, sprite, bag, broom, parts: [bag, broom, sprite] };
   }
@@ -671,7 +672,7 @@ export class DungeonScene extends Phaser.Scene {
     const { width } = this.scale;
     const compact = width < 430;
     const panelX = width / 2;
-    const panelHeight = compact ? 84 : 78;
+    const panelHeight = compact ? 86 : 80;
     const leftBarWidth = compact ? 148 : 154;
     const rightBarWidth = compact ? 108 : 154;
     const rightBarX = compact ? width - 176 : Math.max(188, width - 178);
@@ -681,8 +682,8 @@ export class DungeonScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(90);
     this.hudText = this.add.text(panelX, 12, "", {
-      fontFamily: "sans-serif",
-      fontSize: compact ? "15px" : "16px",
+      fontFamily: DISPLAY_FONT,
+      fontSize: compact ? "14px" : "16px",
       color: "#fff6df",
       fontStyle: "600",
       align: "center",
@@ -696,14 +697,14 @@ export class DungeonScene extends Phaser.Scene {
     this.cleanBar = this.createHudBar(rightBarX, 61, rightBarWidth, "清掃", 0x25f6d4);
 
     this.infoText = this.add.text(panelX, compact ? 91 : 86, "", {
-      fontFamily: "sans-serif",
-      fontSize: compact ? "14px" : "15px",
+      fontFamily: UI_FONT,
+      fontSize: compact ? "13px" : "15px",
       color: "#25f6d4",
       align: "center",
       fontStyle: "600",
       backgroundColor: "#07161add",
       padding: { x: 8, y: 3 },
-      wordWrap: { width: width - 70 },
+      wordWrap: { width: width - 42 },
       stroke: "#120b0c",
       strokeThickness: 1
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(91);
@@ -720,7 +721,7 @@ export class DungeonScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(92);
     const text = this.add.text(x + 5, y - 7, label, {
-      fontFamily: "sans-serif",
+      fontFamily: UI_FONT,
       fontSize: width < 130 ? "12px" : "13px",
       color: "#fff4df",
       fontStyle: "600",
@@ -1527,7 +1528,7 @@ export class DungeonScene extends Phaser.Scene {
     } else if (this.exitAvailable && this.time.now >= this.infoLockedUntil) {
       this.infoText.setText("出口が開いた。緑の光へ向かおう。");
     } else if (this.time.now >= this.infoLockedUntil) {
-      this.infoText.setText(`払う:J / メニュー:右上 / 清掃80%で出口 (${cleanRate}%)`);
+      this.infoText.setText(`清掃80%で出口が開く  ｜  進捗 ${cleanRate}%`);
     }
   }
 

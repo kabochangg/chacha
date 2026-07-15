@@ -7,6 +7,7 @@ import {
 } from "../data/upgrades";
 import { CRAFT_RECIPES, SHOP_UPGRADES, type CraftItemId, type UpgradeKind } from "../data/shop";
 import { loadSave, saveGame, type SaveData } from "../systems/SaveSystem";
+import { DISPLAY_FONT, UI_FONT } from "../ui/theme";
 
 type BaseTab = "home" | "inventory" | "map" | "requests" | "shop";
 
@@ -41,16 +42,17 @@ export class BaseScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor("#140f0a");
     this.drawBaseBackdrop();
 
-    this.addPanel(width / 2, 58, width - 24, 92, UI_PANEL, 0.92, UI_ACCENT, 0.38);
-    this.addEdgeFrame(width / 2, 58, width - 24, 92, UI_ACCENT, 0.36);
-    this.add.rectangle(28, 58, 4, 68, UI_ACCENT, 0.68);
-    this.addReadableText(width / 2, 20, "清掃員の拠点", 20, "#f8e7c7", {
+    this.addPanel(width / 2, 60, width - 24, 100, UI_PANEL, 0.94, UI_ACCENT, 0.42);
+    this.addEdgeFrame(width / 2, 60, width - 24, 100, UI_ACCENT, 0.4);
+    this.add.rectangle(28, 60, 4, 76, UI_ACCENT, 0.76);
+    this.addReadableText(width / 2, 18, "清掃員の拠点", 21, "#fff0cf", {
       fontStyle: "600",
+      fontFamily: DISPLAY_FONT,
       origin: [0.5, 0],
       strokeThickness: 1
     });
 
-    this.statusText = this.addReadableText(width / 2, 66, "", 12, "#fff4df", {
+    this.statusText = this.addReadableText(width / 2, 68, "", width < 380 ? 11 : 12, "#fff4df", {
       align: "center",
       lineSpacing: 6,
       origin: [0.5, 0.5],
@@ -129,8 +131,8 @@ export class BaseScene extends Phaser.Scene {
     this.save = loadSave();
     const { width, height } = this.scale;
 
-    const panelTop = 116;
-    const panelHeight = height - 242;
+    const panelTop = 122;
+    const panelHeight = height - 248;
     const bg = this.addPanel(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, UI_PANEL, 0.94, UI_ACCENT, 0.24);
     this.panel.add(bg);
     this.panel.add(this.createEdgeFrame(width / 2, panelTop + panelHeight / 2, width - 28, panelHeight, UI_ACCENT, 0.38));
@@ -147,34 +149,37 @@ export class BaseScene extends Phaser.Scene {
 
   private showHome(): void {
     const { width, height } = this.scale;
-    this.addToPanel(this.addReadableText(width / 2, 136, "今日の清掃メモ", 18, "#f8e7c7", {
+    const shortScreen = height < 640;
+    const headingY = shortScreen ? 134 : 136;
+    const descriptionY = shortScreen ? 174 : 180;
+    this.addToPanel(this.addReadableText(width / 2, headingY, "今日の清掃メモ", shortScreen ? 17 : 18, "#f8e7c7", {
       fontStyle: "600",
       origin: [0.5, 0.5],
       strokeThickness: 1
     }));
-    this.addToPanel(this.add.rectangle(width / 2, 156, width - 118, 1, 0x67b7a8, 0.32));
-    this.addToPanel(this.addReadableText(width / 2, 180,
+    this.addToPanel(this.add.rectangle(width / 2, shortScreen ? 152 : 156, width - 118, 1, 0x67b7a8, 0.32));
+    this.addToPanel(this.addReadableText(width / 2, descriptionY,
       "清掃率80%以上で出口が開きます。\nB5Fを片付けると次の現場が解放されます。",
-      14,
+      shortScreen ? 12 : 14,
       "#fff4df",
-      { align: "center", lineSpacing: 7, origin: [0.5, 0.5], wordWrapWidth: width - 62, strokeThickness: 1 }
+      { align: "center", lineSpacing: shortScreen ? 4 : 7, origin: [0.5, 0.5], wordWrapWidth: width - 42, strokeThickness: 1 }
     ));
 
     DUNGEON_ORDER.forEach((dungeonId, index) => {
       const dungeon = DUNGEONS[dungeonId];
       const unlocked = this.isDungeonUnlocked(dungeonId);
-      const y = 242 + index * 62;
+      const y = shortScreen ? 228 + index * 44 : 242 + index * 62;
       const label = unlocked ? `${dungeon.name}へ` : `${dungeon.name} 未解放`;
-      this.createButton(width / 2, y, 304, 52, label, unlocked ? dungeon.theme.wallTint : 0x252b35, () => {
+      this.createButton(width / 2, y, Math.min(304, width - 34), shortScreen ? 38 : 52, label, unlocked ? dungeon.theme.wallTint : 0x252b35, () => {
         if (!unlocked) {
           this.messageText.setText(dungeon.unlockText);
           return;
         }
         this.scene.start("DungeonScene", { floor: 1, dungeonId });
-      }, 15);
+      }, shortScreen ? 12 : 15);
     });
-    this.createButton(width / 2, height - 218, 292, 46, "操作UIを左右反転", 0x365b64, () => this.toggleControls(), 15);
-    this.createButton(width / 2, height - 162, 292, 44, "タイトルへ", 0x1c2230, () => this.scene.start("TitleScene"), 15);
+    this.createButton(width / 2, shortScreen ? height - 192 : height - 218, Math.min(292, width - 42), shortScreen ? 38 : 46, "操作UIを左右反転", 0x365b64, () => this.toggleControls(), shortScreen ? 13 : 15);
+    this.createButton(width / 2, shortScreen ? height - 148 : height - 162, Math.min(292, width - 42), shortScreen ? 38 : 44, "タイトルへ", 0x1c2230, () => this.scene.start("TitleScene"), shortScreen ? 13 : 15);
     this.messageText.setText("B5Fクリアで次の清掃現場が開きます。");
   }
 
@@ -522,6 +527,7 @@ export class BaseScene extends Phaser.Scene {
     color: string,
     options: {
       fontStyle?: string;
+      fontFamily?: string;
       align?: "left" | "center" | "right";
       lineSpacing?: number;
       origin?: [number, number];
@@ -531,7 +537,7 @@ export class BaseScene extends Phaser.Scene {
   ): Phaser.GameObjects.Text {
     const strokeThickness = Math.max(0, (options.strokeThickness ?? 0) - 1);
     const label = this.add.text(x, y, text, {
-      fontFamily: "sans-serif",
+      fontFamily: options.fontFamily ?? UI_FONT,
       fontSize: `${fontSize}px`,
       color,
       fontStyle: options.fontStyle ?? "400",

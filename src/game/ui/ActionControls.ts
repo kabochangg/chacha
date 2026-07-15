@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import type { ControlLayout } from "./VirtualPad";
+import { UI_FONT } from "./theme";
 
 type PrimaryActionMode = "clean" | "exit";
 
@@ -244,7 +245,7 @@ export class ActionControls {
     );
 
     const label = this.scene.add.text(config.x, config.y, config.label, {
-      fontFamily: "sans-serif",
+      fontFamily: UI_FONT,
       fontSize: `${config.fontSize}px`,
       color: config.labelColor,
       fontStyle: "700",
@@ -291,7 +292,7 @@ export class ActionControls {
     );
 
     this.scene.add.text(config.x, config.y, config.label, {
-      fontFamily: "sans-serif",
+      fontFamily: UI_FONT,
       fontSize: `${config.fontSize}px`,
       color: config.labelColor,
       fontStyle: "700",

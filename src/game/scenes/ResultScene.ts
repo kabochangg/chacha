@@ -4,6 +4,7 @@ import { DUNGEONS } from "../data/dungeons";
 import { ITEMS, type ItemId } from "../data/items";
 import { loadSave, saveGame } from "../systems/SaveSystem";
 import type { RunResult } from "../types";
+import { DISPLAY_FONT, UI_FONT } from "../ui/theme";
 
 export class ResultScene extends Phaser.Scene {
   private result!: RunResult;
@@ -30,7 +31,7 @@ export class ResultScene extends Phaser.Scene {
     this.add.rectangle(width / 2, height / 2 - 40, width - 34, 356, 0x30281f, 0.98)
       .setStrokeStyle(2, 0xe2b56f, 0.82);
     this.add.text(width / 2, 58, "作業報告", {
-      fontFamily: "sans-serif",
+      fontFamily: DISPLAY_FONT,
       fontSize: "29px",
       color: "#f8e7c7",
       fontStyle: "700",
@@ -41,7 +42,7 @@ export class ResultScene extends Phaser.Scene {
     this.add.circle(width / 2, 126, 42, rankColor, 0.94)
       .setStrokeStyle(3, 0xffe0a3, 0.92);
     this.add.text(width / 2, 126, this.result.rank, {
-      fontFamily: "sans-serif",
+      fontFamily: DISPLAY_FONT,
       fontSize: "38px",
       color: "#fff4df",
       fontStyle: "700",
@@ -54,7 +55,7 @@ export class ResultScene extends Phaser.Scene {
       `清掃率 ${cleanRate}% (${this.result.cleaned}/${this.result.totalDebris})\n` +
       `売却見込み ${this.result.earnedMoney}G / 被ダメ ${this.result.damageTaken}`,
       {
-        fontFamily: "sans-serif",
+        fontFamily: UI_FONT,
         fontSize: "16px",
         color: "#fff4df",
         align: "center",
@@ -68,7 +69,7 @@ export class ResultScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x8b6338, 0.6);
     this.add.image(width / 2 - 116, 270, ASSET_KEYS.player.bag).setDisplaySize(42, 42);
     this.add.text(width / 2 - 82, 270, `回収素材\n${inventoryText}`, {
-      fontFamily: "sans-serif",
+      fontFamily: UI_FONT,
       fontSize: "14px",
       color: "#ffe0a3",
       align: "left",
@@ -121,7 +122,7 @@ export class ResultScene extends Phaser.Scene {
       .setStrokeStyle(2, 0xffd08a, 0.72)
       .setInteractive({ useHandCursor: true });
     this.add.text(x, y, label, {
-      fontFamily: "sans-serif",
+      fontFamily: UI_FONT,
       fontSize: height >= 58 ? "19px" : "17px",
       color: "#fff4df",
       fontStyle: "600",

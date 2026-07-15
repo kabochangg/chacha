@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { UI_FONT } from "./theme";
 import { getPlaceholderAsset, type PlaceholderShape } from "../data/assets";
 
 export function createAssetIcon(
@@ -23,7 +24,7 @@ export function createAssetIcon(
   const spec = getPlaceholderAsset(assetKey);
   const shape = createPlaceholderShape(scene, size, spec.shape, spec.color, spec.accent);
   const text = scene.add.text(0, 0, labelOverride ?? spec.label, {
-    fontFamily: "sans-serif",
+    fontFamily: UI_FONT,
     fontSize: `${Math.max(12, Math.floor(size * 0.38) + 2)}px`,
     color: "#fff4df",
     fontStyle: "700",
